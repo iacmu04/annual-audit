@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Audit Risk Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js & Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- PapaParse for CSV Handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Prompt / Sarabun -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .glass-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.04); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em;
+            padding-right: 2.25rem !important;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col p-4 md:p-6 space-y-6">
+
+    <!-- Top Header -->
+    <header class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="bg-amber-500 text-white p-2.5 rounded-xl font-black text-xl flex items-center justify-center w-11 h-11 shadow-md shadow-amber-200">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold leading-tight text-slate-900">Executive Audit Risk Dashboard</h1>
+                <p class="text-xs text-slate-500 font-medium">รายงานข้อมูลผู้ตรวจสอบภายใน & เจาะลึกประเด็นความเสี่ยง (MS List & CSV Supported)</p>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <span id="data-status-badge" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="status-text">พร้อมใช้งาน (38 รายการ)</span>
+            </span>
+
+            <label class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                <i class="fa-solid fa-file-csv"></i> นำเข้าไฟล์ CSV/Excel
+                <input type="file" id="csv-file-input" accept=".csv, .txt" class="hidden" onchange="handleFileUpload(event)">
+            </label>
+
+            <button onclick="exportUpdatedCSV()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-download"></i> ดาวน์โหลดไฟล์ CSV
+            </button>
+
+            <button onclick="openFormModal()" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-plus"></i> เพิ่มประเด็นใหม่
+            </button>
+
+            <button onclick="refreshData()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-rotate"></i> รีเฟรชข้อมูล
+            </button>
+        </div>
+    </header>
+
+    <!-- Top Interactive Section (Slicers & KPI Card) -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- Global Slicers -->
+        <div class="lg:col-span-7 glass-card p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-filter text-amber-500"></i>
+                    <h2 class="text-sm font-bold text-slate-800">ตัวกรองหน้าจอ (Interactive Slicers)</h2>
+                </div>
+                <button onclick="resetFilters()" class="text-xs text-slate-400 hover:text-amber-600 transition flex items-center gap-1 font-medium">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> รีเซ็ตตัวกรอง
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- 1. Year Slicer (Multi-select Pills) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">1. เลือกปีงบประมาณเปรียบเทียบ (เลือกได้หลายปี)</label>
+                    <div id="year-pills-container" class="flex flex-wrap gap-2">
+                        <!-- Year pills generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Dropdown Slicers Grid (5 Filters) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">2. ส่วนงาน</label>
+                        <select id="slicer-dept" onchange="onDeptChange(this.value)" class="w-full text-xs bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 focus:ring-2 focus:ring-amber-500 outline-none transition font-medium">
+                            <option value="ALL">ทุกส่วนงาน</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">3. ประเภทการตรวจ</label>
+                        <select id="slicer-type" onchange="onTypeChange(this.value)" class="w-full text-xs bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 focus:ring-2 focus:ring-amber-500 outline-none transition font-medium">
+                            <option value="ALL">ทุกประเภท</option>
+                            <option value="ข้อตรวจพบปีปัจจุบัน">ข้อตรวจพบปีปัจจุบัน</option>
+                            <option value="ติดตามงานเดิม">ติดตามงานเดิม</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">4. ระดับความเสี่ยง</label>
+                        <select id="slicer-risk" onchange="onRiskChange(this.value)" class="w-full text-xs bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 focus:ring-2 focus:ring-amber-500 outline-none transition font-medium">
+                            <option value="ALL">ทุกระดับความเสี่ยง</option>
+                            <option value="ต่ำ">ต่ำ</option>
+                            <option value="ปานกลาง">ปานกลาง</option>
+                            <option value="ค่อนข้างสูง">ค่อนข้างสูง</option>
+                            <option value="สูง">สูง</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">5. ประเด็นหลัก</label>
+                        <select id="slicer-main-topic" onchange="onMainTopicChange(this.value)" class="w-full text-xs bg-amber-50/70 border border-amber-200 text-amber-900 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-amber-500 outline-none transition">
+                            <option value="ALL">ทุกประเด็นหลัก</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">6. ประเด็นย่อย (กรองตามประเด็นหลัก)</label>
+                        <select id="slicer-sub-topic" onchange="onSubTopicChange(this.value)" class="w-full text-xs bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 focus:ring-2 focus:ring-amber-500 outline-none transition font-medium">
+                            <option value="ALL">ทุกประเด็นย่อย</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Card Banner (Right Dark Box) -->
+        <div class="lg:col-span-5 rounded-2xl p-5 bg-slate-900 text-white flex flex-col justify-between shadow-lg relative overflow-hidden border border-slate-800">
+            <div class="flex justify-between items-start mb-2 z-10">
+                <div>
+                    <p class="text-[10px] font-bold text-amber-400 tracking-wider uppercase">KEY PERFORMANCE INDICATOR</p>
+                    <h3 class="text-sm font-bold text-white mt-0.5">จำนวนประเด็นย่อย (เปรียบเทียบตามปีงบประมาณ)</h3>
+                </div>
+                <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">อัปเดตล่าสุด: สด</span>
+            </div>
+
+            <!-- Dynamic Year Cards Container -->
+            <div id="kpi-years-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-3 z-10">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 z-10 flex items-center justify-between text-xs">
+                <span class="text-slate-400">รวมทั้งหมดที่กรอง:</span>
+                <span id="kpi-grand-total" class="text-2xl font-black text-amber-400">0 ประเด็น</span>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Visual Row 1: Donut Charts & Main Topic Bar Chart -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left: Donut Charts per Year (Top Aligned) -->
+        <div class="lg:col-span-5 glass-card p-5 flex flex-col justify-start">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">สัดส่วนระดับความเสี่ยง (เปรียบเทียบรายปี)</h3>
+                    <p class="text-xs text-slate-400">แสดงแผนภูมิวงกลม 1 วง ต่อ 1 ปีงบประมาณ พร้อมสรุปจำแนกความเสี่ยงรายปี</p>
+                </div>
+                <span class="text-[10px] bg-slate-100 text-slate-500 font-semibold px-2 py-0.5 rounded border border-slate-200">Multi-Donut</span>
+            </div>
+
+            <!-- Positioned immediately under header text -->
+            <div id="donut-charts-wrapper" class="mt-3 py-1 flex flex-wrap justify-start items-start gap-4">
+                <!-- Donut charts per year injected here -->
+            </div>
+        </div>
+
+        <!-- Right: Clustered Bar Chart for Main Topics -->
+        <div class="lg:col-span-7 glass-card p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">เปรียบเทียบประเด็นหลัก รายปีงบประมาณ</h3>
+                    <p class="text-xs text-slate-400">จำแนกตามประเด็นหลัก 4 ด้านหลัก (เรียงลำดับถาวร)</p>
+                </div>
+                <span class="text-[10px] bg-amber-50 text-amber-700 font-bold px-2.5 py-0.5 rounded-full border border-amber-200">เรียงตามมาตรฐาน AUDIT</span>
+            </div>
+
+            <div class="relative py-2 my-auto h-[230px] w-full">
+                <canvas id="mainTopicBarChart"></canvas>
+            </div>
+
+            <!-- Summary Table for Main Topics -->
+            <div class="pt-3 border-t border-slate-100 overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left text-[11px] border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                            <th class="p-2">ประเด็นหลัก</th>
+                            <th id="th-year-cols" class="p-2 text-center">สถิติจำแนกรายปี (รายการ / %)</th>
+                            <th class="p-2 text-right">รวมทั้งหมดที่กรอง</th>
+                        </tr>
+                    </thead>
+                    <tbody id="main-topic-summary-tbody" class="divide-y divide-slate-100 text-slate-700">
+                        <!-- Summary rows populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Visual Row 2: Top 10 Departments Chart -->
+    <section class="glass-card p-5">
+        <div class="flex flex-wrap items-center justify-between pb-3 border-b border-slate-100 gap-2">
+            <div>
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-building-columns text-amber-500"></i>
+                    10 อันดับส่วนงานที่มีจำนวนข้อตรวจพบสูงสุด (Top 10 Departments)
+                </h3>
+                <p class="text-xs text-slate-400">เรียงลำดับส่วนงานตามจำนวนข้อตรวจพบจากมากไปน้อย (คลิกที่แท่งเพื่อกรองข้อมูลส่วนงานนั้น)</p>
+            </div>
+            <button onclick="openAllDeptsModal()" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-magnifying-glass"></i> ดูส่วนงานทั้งหมด & รายละเอียดเพิ่มเติม ↗
+            </button>
+        </div>
+
+        <div class="relative py-4 h-[320px] w-full">
+            <canvas id="top10DeptsChart"></canvas>
+        </div>
+    </section>
+
+    <!-- Detailed Table Section & Bottom Linked Slicers -->
+    <section class="glass-card p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">รายการข้อตรวจพบและประเด็นความเสี่ยงทั้งหมด</h3>
+                <p class="text-xs text-slate-400">คลิกที่แถวเพื่อดูรายละเอียดเพิ่มเติม หรือคลิกปุ่มรายงานฉบับเต็มเพื่อเปิดไฟล์</p>
+            </div>
+            <span id="record-count-tag" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                แสดงผล 0 รายการ
+            </span>
+        </div>
+
+        <!-- Linked Table Filters Bar -->
+        <div class="bg-slate-50/90 p-4 rounded-xl border border-slate-200/80 space-y-2">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-amber-800 flex items-center gap-1">
+                    <i class="fa-solid fa-caret-down"></i> ตัวกรองรายการแบบเชื่อมโยง (Linked Table Filters)
+                </span>
+                <span id="year-filter-status" class="text-[11px] text-amber-700 font-semibold bg-amber-100/60 px-2.5 py-0.5 rounded-full">เลือกแล้ว 1/1 ปี</span>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">1. ส่วนงาน</label>
+                    <select id="tbl-slicer-dept" onchange="onDeptChange(this.value)" class="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg font-medium outline-none">
+                        <option value="ALL">ทุกส่วนงาน</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">2. ประเภทการตรวจ</label>
+                    <select id="tbl-slicer-type" onchange="onTypeChange(this.value)" class="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg font-medium outline-none">
+                        <option value="ALL">ทุกประเภท</option>
+                        <option value="ข้อตรวจพบปีปัจจุบัน">ข้อตรวจพบปีปัจจุบัน</option>
+                        <option value="ติดตามงานเดิม">ติดตามงานเดิม</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">3. ระดับความเสี่ยง</label>
+                    <select id="tbl-slicer-risk" onchange="onRiskChange(this.value)" class="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg font-medium outline-none">
+                        <option value="ALL">ทุกระดับความเสี่ยง</option>
+                        <option value="ต่ำ">ต่ำ</option>
+                        <option value="ปานกลาง">ปานกลาง</option>
+                        <option value="ค่อนข้างสูง">ค่อนข้างสูง</option>
+                        <option value="สูง">สูง</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">4. ประเด็นหลัก</label>
+                    <select id="tbl-slicer-main-topic" onchange="onMainTopicChange(this.value)" class="w-full text-xs p-2 bg-amber-50/80 border border-amber-200 text-amber-900 font-bold rounded-lg outline-none">
+                        <option value="ALL">ทุกประเด็นหลัก</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">5. ประเด็นย่อย</label>
+                    <select id="tbl-slicer-sub-topic" onchange="onSubTopicChange(this.value)" class="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg font-medium outline-none">
+                        <option value="ALL">ทุกประเด็นย่อย</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Data Table -->
+        <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-200">
+            <table class="w-full text-left text-xs border-collapse table-fixed min-w-[900px]">
+                <thead>
+                    <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <th class="p-3 w-[7%]">ปีงบฯ</th>
+                        <th class="p-3 w-[16%]">ส่วนงาน</th>
+                        <th class="p-3 w-[13%]">ประเภท</th>
+                        <th class="p-3 w-[15%]">ประเด็นหลัก</th>
+                        <th class="p-3 w-[15%]">ประเด็นย่อย</th>
+                        <th class="p-3 w-[10%] text-center">ระดับความเสี่ยง</th>
+                        <th class="p-3 w-[12%]">รายละเอียด</th>
+                        <th class="p-3 w-[12%] text-center">รายงานฉบับเต็ม</th>
+                        <th class="p-3 w-[8%] text-center">การจัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="main-audit-tbody" class="divide-y divide-slate-100 text-slate-700">
+                    <!-- Data rows injected dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Detail View Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-900 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base text-white">รายละเอียดข้อตรวจพบและประเด็นความเสี่ยง</h3>
+                        <p id="modal-subtitle" class="text-xs text-slate-400">ปีงบประมาณ -- | ส่วนงาน --</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('detail-modal')" class="text-slate-400 hover:text-white p-2 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar space-y-4 text-xs text-slate-700">
+                <div class="grid grid-cols-2 gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">ประเภทการตรวจ:</span>
+                        <span id="modal-type" class="font-bold text-slate-800 text-xs">--</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">ระดับความเสี่ยง:</span>
+                        <span id="modal-risk-badge" class="px-2.5 py-0.5 rounded-full font-bold text-[11px]">--</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">ประเด็นหลัก:</span>
+                        <span id="modal-main-topic" class="font-bold text-slate-800">--</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">ประเด็นย่อย:</span>
+                        <span id="modal-sub-topic" class="font-bold text-slate-800">--</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-magnifying-glass-chart text-amber-500"></i> ข้อตรวจพบ / รายรายละเอียดประเด็น
+                    </h4>
+                    <div id="modal-finding-text" class="p-3.5 bg-amber-50/50 border border-amber-200/60 rounded-xl leading-relaxed text-slate-800 whitespace-pre-line">
+                        --
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb text-emerald-500"></i> แนวทางแก้ไข / ข้อเสนอแนะ
+                    </h4>
+                    <div id="modal-recommendation-text" class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl leading-relaxed text-slate-700 whitespace-pre-line">
+                        --
+                    </div>
+                </div>
+
+                <div id="modal-report-link-box" class="pt-2">
+                    <!-- Report Button Injected Here -->
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="closeModal('detail-modal')" class="px-5 py-2 text-xs font-semibold bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Departments Breakdown Modal -->
+    <div id="all-depts-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-900 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-list-ol"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base text-white">รายงานข้อตรวจพบแยกตามส่วนงานทั้งหมด</h3>
+                        <p class="text-xs text-slate-400">แสดงลำดับและจำนวนประเด็นความเสี่ยงของทุกส่วนงาน (ค้นหาและเลือกส่วนงานที่ต้องการกรองได้)</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('all-depts-modal')" class="text-slate-400 hover:text-white p-2 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-b border-slate-200">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400"></i>
+                    <input type="text" id="dept-search-input" onkeyup="filterDeptsModalTable()" placeholder="ค้นหาชื่อส่วนงาน..." class="w-full text-xs pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-grow">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <th class="p-3 text-center w-[8%]">ลำดับ</th>
+                            <th class="p-3 w-[36%]">ส่วนงาน</th>
+                            <th class="p-3 text-center w-[12%] text-amber-700">รวมประเด็น</th>
+                            <th class="p-3 text-center w-[10%] text-emerald-700">ต่ำ</th>
+                            <th class="p-3 text-center w-[10%] text-amber-600">ปานกลาง</th>
+                            <th class="p-3 text-center w-[10%] text-orange-600">ค่อนข้างสูง</th>
+                            <th class="p-3 text-center w-[10%] text-red-600">สูง</th>
+                            <th class="p-3 text-center w-[14%]">การกระทำ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-depts-modal-tbody" class="divide-y divide-slate-100">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="closeModal('all-depts-modal')" class="px-5 py-2 text-xs font-semibold bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Record Form Modal -->
+    <div id="form-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-900 flex items-center justify-center font-bold">
+                        <i id="form-icon" class="fa-solid fa-plus"></i>
+                    </div>
+                    <div>
+                        <h3 id="form-modal-title" class="font-bold text-base text-white">เพิ่มข้อตรวจพบและประเด็นความเสี่ยงใหม่</h3>
+                        <p class="text-xs text-slate-400">กรอกข้อมูลให้ครบถ้วนเพื่อบันทึกเข้าสู่ระบบ</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('form-modal')" class="text-slate-400 hover:text-white p-2 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="audit-record-form" onsubmit="saveRecord(event)" class="p-6 overflow-y-auto custom-scrollbar space-y-4 text-xs text-slate-700">
+                <input type="hidden" id="form-record-id" value="">
+
+                <div class="grid grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ปีงบประมาณ <span class="text-red-500">*</span></label>
+                        <input type="text" id="form-year" required placeholder="เช่น 2569" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ส่วนงาน <span class="text-red-500">*</span></label>
+                        <input type="text" id="form-dept" required placeholder="เช่น คณะบริหารธุรกิจ" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ประเภทการตรวจ <span class="text-red-500">*</span></label>
+                        <select id="form-type" required class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                            <option value="ข้อตรวจพบปีปัจจุบัน">ข้อตรวจพบปีปัจจุบัน</option>
+                            <option value="ติดตามงานเดิม">ติดตามงานเดิม</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ระดับความเสี่ยง <span class="text-red-500">*</span></label>
+                        <select id="form-risk" required class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                            <option value="ต่ำ">ต่ำ</option>
+                            <option value="ปานกลาง">ปานกลาง</option>
+                            <option value="ค่อนข้างสูง">ค่อนข้างสูง</option>
+                            <option value="สูง">สูง</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ประเด็นหลัก <span class="text-red-500">*</span></label>
+                        <select id="form-main-topic" onchange="onFormMainTopicChange(this.value)" required class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-bold text-slate-800">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ประเด็นย่อย <span class="text-red-500">*</span></label>
+                        <input type="text" id="form-sub-topic" list="form-sub-topic-list" required placeholder="เลือกหรือพิมพ์ประเด็นย่อย" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500">
+                        <datalist id="form-sub-topic-list"></datalist>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">ข้อตรวจพบ / รายละเอียดประเด็น</label>
+                    <textarea id="form-finding" rows="3" placeholder="ระบุข้อตรวจพบ..." class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">แนวทางแก้ไข / ข้อเสนอแนะ</label>
+                    <textarea id="form-recommendation" rows="2" placeholder="ระบุข้อเสนอแนะ..." class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">ลิงก์ MS List / รายงานฉบับเต็ม (URL)</label>
+                    <input type="text" id="form-report-url" placeholder="https://o365cmu.sharepoint.com/..." class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('form-modal')" class="px-4 py-2 text-xs font-semibold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition shadow-sm">
+                        💾 บันทึกข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        
+        // STRICT NORMALISED MAIN TOPICS ORDER
+        const STRICT_MAIN_TOPICS = [
+            "ด้านผลการดำเนินงาน",
+            "ด้านการเงิน",
+            "ด้านการดำเนินงาน",
+            "ด้านการปฏิบัติตามกฎระเบียบ"
+        ];
+
+        // MASTER SUB-TOPICS MAP ACCORDING TO USER'S EXACT PRADEN LISTS
+        const MASTER_PRADEN_MAP = {
+            "ด้านการเงิน": [
+                "การควบคุมใบเสร็จรับเงิน",
+                "การจัดการลูกหนี้สัญญาเช่า",
+                "การจ่ายเงิน",
+                "การบริหารจัดการเงินสดย่อย",
+                "การรับ นำส่งเงิน และการบันทึกบัญชี",
+                "เงินยืมทดรองหมุนเวียน",
+                "เงินสดคงเหลือประจำวัน",
+                "เจ้าหนี้",
+                "ด้านลูกหนี้เงินยืม",
+                "เปรียบเทียบงบการเงินของผู้สอบบัญชี",
+                "รายงานทางการเงิน",
+                "ลูกหนี้การค้า",
+                "ลูกหนี้เงินทดรองหมุนเวียน",
+                "ลูกหนี้เงินยืม",
+                "วิเคราะห์งบการเงิน",
+                "วิเคราะห์งบการเงินประจำปี"
+            ],
+            "ด้านการดำเนินงาน": [
+                "การควบคุมสินทรัพย์",
+                "การเช่าสถานที่",
+                "การใช้พาหนะส่วนงาน",
+                "การดำเนินงานตามผู้สอบบัญชี",
+                "โครงการตามยุทธศาสตร์",
+                "โครงการบริการวิชาการ",
+                "โครงการวิจัย",
+                "โครงการวิจัยเครือข่ายความร่วมมือ",
+                "โครงการอบรมสัมมนา",
+                "เงินทุนส่งเสริมและพัฒนางานวิจัยของส่วนงาน",
+                "ผลการดำเนินงานตามเป้าหมายเชิงยุทธศาสตร์",
+                "ผลการดำเนินงานของส่วนงาน",
+                "ผลการดำเนินงานโครงการพัฒนารายวิชา",
+                "ผลการดำเนินงานตามตัวชี้วัดและเป้าหมาย",
+                "ผลการดำเนินงานย้อนหลัง 5 ปี",
+                "ระบบน้ำดื่มอ่างแก้ว",
+                "ลูกหนี้การค้า",
+                "ลูกหนี้เงินทดรองหมุนเวียน",
+                "ลูกหนี้เงินยืม",
+                "วิเคราะห์งบการเงิน",
+                "วิเคราะห์งบการเงินประจำปี"
+            ],
+            "ด้านการปฏิบัติตามกฎระเบียบ": [
+                "การจัดซื้อจัดจ้าง",
+                "การเบิกจ่าย",
+                "โครงการวิจัยดำเนินงานลักษณะให้บริการ",
+                "เงินบริจาค"
+            ],
+            "ด้านผลการดำเนินงาน": [
+                "โครงการเงินอุดหนุนทั่วไป",
+                "โครงการตามคำรับรองการปฏิบัติงาน",
+                "โครงการตามพันธกิจของส่วนงาน",
+                "โครงการตามยุทธศาสตร์",
+                "โครงการทำนุศิลปวัฒนธรรมและสิ่งแวดล้อม",
+                "โครงการบริการวิชาการ",
+                "โครงการวิจัย",
+                "โครงการอบรมสัมมนา",
+                "เงินยืมทดรองหมุนเวียน",
+                "จำนวนนักศึกษา",
+                "เปรียบเทียบงบการเงินของผู้สอบบัญชี",
+                "ผลการดำเนินงานของส่วนงาน",
+                "ผลการดำเนินงานตามคำรับรองการปฏิบัติงาน",
+                "ผลการดำเนินงานตามยุทธศาสตร์",
+                "ผลการดำเนินงานย้อนหลัง 5 ปี",
+                "ผลการประเมิน SROI",
+                "ผลโครงการบริการวิชาการ",
+                "ผลงานด้านอื่นๆ",
+                "วิเคราะห์งบการเงิน"
+            ]
+        };
+
+        // Master Dataset State
+        let rawData = [
+            { id: 1, year: "2569", department: "คณะบริหารธุรกิจ", type: "ข้อตรวจพบปีปัจจุบัน", mainTopic: "ด้านผลการดำเนินงาน", subTopic: "ผลการดำเนินงานของส่วนงาน", risk: "ปานกลาง", finding: "การประเมินผลการดำเนินงานตามแผนยุทธศาสตร์ยังไม่ครอบคลุมทุกตัวชี้วัดหลัก", recommendation: "ให้จัดทำรายงานสรุปประเมินรายไตรมาส", reportUrl: "https://o365cmu.sharepoint.com" },
+            { id: 2, year: "2569", department: "ศูนย์วิจัยนานาชาติ", type: "ข้อตรวจพบปีปัจจุบัน", mainTopic: "ด้านผลการดำเนินงาน", subTopic: "โครงการวิจัย", risk: "ต่ำ", finding: "รายงานสรุปโครงการวิจัยส่งล่าช้ากว่ากำหนดในแผนงาน 2 สัปดาห์", recommendation: "เร่งรัดหัวหน้าโครงการวิจัยให้ส่งรายงานตรงเวลา", reportUrl: "" },
+            { id: 3, year: "2569", department: "ศูนย์วิจัยและบริการวิชาการนานาชาติ", type: "ข้อตรวจพบปีปัจจุบัน", mainTopic: "ด้านการเงิน", subTopic: "การรับ นำส่งเงิน และการบันทึกบัญชี", risk: "ต่ำ", finding: "การนำส่งเงินรายได้ช้ากว่ากำหนดในระเบียบเงินเล็กน้อย", recommendation: "จัดทำปฏิทินนำส่งเงินรายสัปดาห์", reportUrl: "https://o365cmu.sharepoint.com" },
+            { id: 4, year: "2569", department: "คณะวิทยาศาสตร์", type: "ข้อตรวจพบปีปัจจุบัน", mainTopic: "ด้านการเงิน", subTopic: "การจ่ายเงิน", risk: "ต่ำ", finding: "เอกสารประกอบการจ่ายเงินเบิกจ่ายค่าเดินทางไม่ครบถ้วนสมบูรณ์", recommendation: "ตรวจสอบใบเสร็จรับเงินก่อนตั้งเบิกทุกครั้ง", reportUrl: "" },
+            { id: 5, year: "2569", department: "คณะวิศวกรรมศาสตร์", type: "ข้อตรวจพบปีปัจจุบัน", mainTopic: "ด้านการดำเนินงาน", subTopic: "โครงการบริการวิชาการ", risk: "ต่ำ", finding: "การจัดทำร่างสัญญาโครงการบริการวิชาการยังขาดข้อกำหนดบางประการ", recommendation: "ใช้แบบสัญญามาตรฐานของมหาวิทยาลัย", reportUrl: "" },
+            { id: 6, year: "2569", department: "สถาบันวิจัยสุขภาพ", type: "ติดตามงานเดิม", mainTopic: "ด้านการดำเนินงาน", subTopic: "การใช้พาหนะส่วนงาน", risk: "ปานกลาง", finding: "การดำเนินงานด้านการใช้รถส่วนกลางและการเบิกจ่ายน้ำมันเชื้อเพลิง มีรถส่วนกลาง 78 คัน เครื่องมือเกษตร 57 เครื่อง ยังพบปัญหาต่ออายุทะเบียนไม่ครบ", recommendation: "จัดทำระบบคุมทะเบียนพยานพาหนะรวมศูนย์", reportUrl: "https://o365cmu.sharepoint.com" },
+            { id: 7, year: "2569", department: "คณะเกษตรศาสตร์", type: "ข้อตรวจพบปีปัจจุบัน", mainTopic: "ด้านการปฏิบัติตามกฎระเบียบ", subTopic: "การจัดซื้อจัดจ้าง", risk: "ค่อนข้างสูง", finding: "กระบวนการกำหนด TOR ในการจัดซื้อจัดจ้างครุภัณฑ์ชิ้นใหญ่ไม่เปิดกว้างเท่าที่ควร", recommendation: "ปรับแต่งคณะกรรมการร่าง TOR ให้มีผู้เชี่ยวชาญหลากหลาย", reportUrl: "" }
+        ];
+
+        let filteredData = [...rawData];
+        let selectedYears = ["2569"];
+
+        let mainTopicBarChartInstance = null;
+        let top10DeptsChartInstance = null;
+
+        window.onload = function() {
+            initDashboard();
+        };
+
+        function normalizeMainTopic(text) {
+            if (!text) return "ด้านการดำเนินงาน";
+            const str = String(text).trim();
+            if (str.includes("การเงิน")) return "ด้านการเงิน";
+            if (str.includes("ผลการดำเนินงาน")) return "ด้านผลการดำเนินงาน";
+            if (str.includes("ดำเนินงาน")) return "ด้านการดำเนินงาน";
+            if (str.includes("กฎ") || str.includes("ระเบียบ") || str.includes("ข้อบังคับ")) return "ด้านการปฏิบัติตามกฎระเบียบ";
+            return "ด้านการดำเนินงาน";
+        }
+
+        function extractCleanText(htmlOrText) {
+            if (!htmlOrText) return "";
+            const div = document.createElement("div");
+            div.innerHTML = htmlOrText;
+            return (div.textContent || div.innerText || "").trim();
+        }
+
+        function extractSharePointUrl(htmlOrText) {
+            if (!htmlOrText) return "";
+            const hrefMatch = String(htmlOrText).match(/href=["']([^"']+)["']/i);
+            let url = hrefMatch ? hrefMatch[1] : String(htmlOrText).trim();
+            if (url.startsWith("/")) {
+                url = "https://o365cmu.sharepoint.com" + url;
+            }
+            return url.startsWith("http") ? url : "";
+        }
+
+
+        function initDashboard() {
+            selectedYears = [...new Set(rawData.map(d => d.year))].sort();
+            populateYearPills();
+            populateDropdowns();
+            populateSubDropdowns("ALL");
+            applyFilters();
+        }
+
+        function populateYearPills() {
+            const years = [...new Set(rawData.map(d => d.year))].sort();
+            const container = document.getElementById("year-pills-container");
+            container.innerHTML = "";
+
+            years.forEach(yr => {
+                const isSelected = selectedYears.includes(yr);
+                const pill = document.createElement("button");
+                pill.className = `px-3.5 py-1 rounded-full text-xs font-bold transition border shadow-sm ${
+                    isSelected 
+                    ? 'bg-amber-500 text-white border-amber-500' 
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`;
+                pill.innerText = `ปี ${yr}`;
+                pill.onclick = () => toggleYearPill(yr);
+                container.appendChild(pill);
+            });
+
+            document.getElementById("year-filter-status").innerText = `เลือกแล้ว ${selectedYears.length}/${years.length} ปี`;
+        }
+
+        function toggleYearPill(year) {
+            if (selectedYears.includes(year)) {
+                if (selectedYears.length > 1) {
+                    selectedYears = selectedYears.filter(y => y !== year);
+                }
+            } else {
+                selectedYears.push(year);
+            }
+            populateYearPills();
+            applyFilters();
+        }
+
+        function populateDropdowns() {
+            const depts = [...new Set(rawData.map(d => d.department))].sort();
+            fillSelectOptions("slicer-dept", "tbl-slicer-dept", depts, "ส่วนงาน");
+
+            fillSelectOptions("slicer-main-topic", "tbl-slicer-main-topic", STRICT_MAIN_TOPICS, "ประเด็นหลัก");
+
+            // Populate Form Main Topic
+            const formMainSelect = document.getElementById("form-main-topic");
+            formMainSelect.innerHTML = STRICT_MAIN_TOPICS.map(t => `<option value="${t}">${t}</option>`).join("");
+        }
+
+        function fillSelectOptions(topId, tblId, items, label) {
+            const topElem = document.getElementById(topId);
+            const tblElem = document.getElementById(tblId);
+
+            const optionsHtml = (currVal) => {
+                let html = `<option value="ALL">ทุก${label}</option>`;
+                items.forEach(it => {
+                    html += `<option value="${it}" ${it === currVal ? 'selected' : ''}>${it}</option>`;
+                });
+                return html;
+            };
+
+            if (topElem) topElem.innerHTML = optionsHtml(topElem.value);
+            if (tblElem) tblElem.innerHTML = optionsHtml(tblElem.value);
+        }
+
+        function populateSubDropdowns(mainTopicVal) {
+            let subTopics = [];
+
+            if (mainTopicVal === "ALL") {
+                Object.values(MASTER_PRADEN_MAP).forEach(list => subTopics.push(...list));
+                subTopics = [...new Set(subTopics)].sort();
+            } else {
+                const norm = normalizeMainTopic(mainTopicVal);
+                subTopics = MASTER_PRADEN_MAP[norm] || [];
+            }
+
+            fillSelectOptions("slicer-sub-topic", "tbl-slicer-sub-topic", subTopics, "ประเด็นย่อย");
+        }
+
+        function onDeptChange(val) {
+            syncSlicers("slicer-dept", "tbl-slicer-dept", val);
+            applyFilters();
+        }
+
+        function onTypeChange(val) {
+            syncSlicers("slicer-type", "tbl-slicer-type", val);
+            applyFilters();
+        }
+
+        function onRiskChange(val) {
+            syncSlicers("slicer-risk", "tbl-slicer-risk", val);
+            applyFilters();
+        }
+
+        function onMainTopicChange(val) {
+            syncSlicers("slicer-main-topic", "tbl-slicer-main-topic", val);
+            populateSubDropdowns(val);
+            applyFilters();
+        }
+
+        function onSubTopicChange(val) {
+            syncSlicers("slicer-sub-topic", "tbl-slicer-sub-topic", val);
+            applyFilters();
+        }
+
+        function syncSlicers(id1, id2, val) {
+            const e1 = document.getElementById(id1);
+            const e2 = document.getElementById(id2);
+            if (e1) e1.value = val;
+            if (e2) e2.value = val;
+        }
+
+        function applyFilters() {
+            const dept = document.getElementById("slicer-dept").value;
+            const type = document.getElementById("slicer-type").value;
+            const risk = document.getElementById("slicer-risk").value;
+            const mainTopic = document.getElementById("slicer-main-topic").value;
+            const subTopic = document.getElementById("slicer-sub-topic").value;
+
+            filteredData = rawData.filter(item => {
+                const matchYear = selectedYears.includes(item.year);
+                const matchDept = (dept === "ALL" || item.department === dept);
+                const matchType = (type === "ALL" || item.type === type);
+                const matchRisk = (risk === "ALL" || item.risk === risk);
+                const matchMain = (mainTopic === "ALL" || item.mainTopic === mainTopic);
+                const matchSub = (subTopic === "ALL" || item.subTopic === subTopic);
+                return matchYear && matchDept && matchType && matchRisk && matchMain && matchSub;
+            });
+
+            updateKPIBanner();
+            renderDonutCharts();
+            renderMainTopicBarChart();
+            renderTop10DeptsChart();
+            renderAuditTable();
+        }
+
+        function resetFilters() {
+            selectedYears = [...new Set(rawData.map(d => d.year))].sort();
+            syncSlicers("slicer-dept", "tbl-slicer-dept", "ALL");
+            syncSlicers("slicer-type", "tbl-slicer-type", "ALL");
+            syncSlicers("slicer-risk", "tbl-slicer-risk", "ALL");
+            syncSlicers("slicer-main-topic", "tbl-slicer-main-topic", "ALL");
+            syncSlicers("slicer-sub-topic", "tbl-slicer-sub-topic", "ALL");
+
+            populateYearPills();
+            populateSubDropdowns("ALL");
+            applyFilters();
+        }
+
+        function updateKPIBanner() {
+            const container = document.getElementById("kpi-years-container");
+            container.innerHTML = "";
+
+            selectedYears.sort().forEach(yr => {
+                const itemsYear = filteredData.filter(d => d.year === yr);
+                const low = itemsYear.filter(d => d.risk === "ต่ำ").length;
+                const med = itemsYear.filter(d => d.risk === "ปานกลาง").length;
+                const high = itemsYear.filter(d => d.risk === "ค่อนข้างสูง").length;
+                const crit = itemsYear.filter(d => d.risk === "สูง").length;
+
+                const card = document.createElement("div");
+                card.className = "bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/80 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2">
+                        <span class="text-xs font-bold text-amber-400">ปี ${yr}</span>
+                        <span class="text-lg font-extrabold text-white">${itemsYear.length}</span>
+                    </div>
+                    <div class="space-y-1.5 text-[11px]">
+                        <div class="flex justify-between items-center text-emerald-400 font-medium">
+                            <span>• ต่ำ:</span> <span class="font-bold">${low}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-amber-400 font-medium">
+                            <span>• ปานกลาง:</span> <span class="font-bold">${med}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-orange-400 font-medium">
+                            <span>• ค่อนข้างสูง:</span> <span class="font-bold">${high}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-red-400 font-medium">
+                            <span>• สูง:</span> <span class="font-bold">${crit}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById("kpi-grand-total").innerText = `${filteredData.length} ประเด็น`;
+        }
+
+        function renderDonutCharts() {
+            const wrapper = document.getElementById("donut-charts-wrapper");
+            wrapper.innerHTML = "";
+
+            selectedYears.sort().forEach(yr => {
+                const itemsYear = filteredData.filter(d => d.year === yr);
+                const low = itemsYear.filter(d => d.risk === "ต่ำ").length;
+                const med = itemsYear.filter(d => d.risk === "ปานกลาง").length;
+                const high = itemsYear.filter(d => d.risk === "ค่อนข้างสูง").length;
+                const crit = itemsYear.filter(d => d.risk === "สูง").length;
+
+                const canvasId = `donut-chart-${yr}`;
+                const card = document.createElement("div");
+                card.className = "flex-1 min-w-[210px] max-w-[260px] bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div class="text-center mb-1">
+                        <span class="text-xs font-bold text-slate-800 bg-white px-3 py-0.5 rounded-full border border-slate-200 inline-block shadow-sm">
+                            ปี ${yr} (${itemsYear.length} ประเด็น)
+                        </span>
+                    </div>
+                    <div class="w-[140px] h-[140px] mx-auto relative my-2">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                    <div class="pt-2 border-t border-slate-200 text-[10px] grid grid-cols-2 gap-1 font-semibold">
+                        <div class="text-emerald-700 bg-emerald-50 p-1 rounded border border-emerald-100 flex justify-between">
+                            <span>ต่ำ:</span> <span>${low}</span>
+                        </div>
+                        <div class="text-amber-700 bg-amber-50 p-1 rounded border border-amber-100 flex justify-between">
+                            <span>ปานกลาง:</span> <span>${med}</span>
+                        </div>
+                        <div class="text-orange-700 bg-orange-50 p-1 rounded border border-orange-100 flex justify-between">
+                            <span>ค่อนสูง:</span> <span>${high}</span>
+                        </div>
+                        <div class="text-red-700 bg-red-50 p-1 rounded border border-red-100 flex justify-between">
+                            <span>สูง:</span> <span>${crit}</span>
+                        </div>
+                    </div>
+                `;
+                wrapper.appendChild(card);
+
+                setTimeout(() => {
+                    const ctx = document.getElementById(canvasId).getContext("2d");
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['ต่ำ', 'ปานกลาง', 'ค่อนข้างสูง', 'สูง'],
+                            datasets: [{
+                                data: [low, med, high, crit],
+                                backgroundColor: ['#22c55e', '#eab308', '#f97316', '#ef4444'],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            cutout: '65%'
+                        }
+                    });
+                }, 50);
+            });
+        }
+
+        function renderMainTopicBarChart() {
+            const ctx = document.getElementById("mainTopicBarChart").getContext("2d");
+            if (mainTopicBarChartInstance) mainTopicBarChartInstance.destroy();
+
+            const yearColors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'];
+            const sortedYears = [...selectedYears].sort();
+
+            const datasets = sortedYears.map((yr, idx) => {
+                const itemsYear = filteredData.filter(d => d.year === yr);
+                const counts = STRICT_MAIN_TOPICS.map(topic => 
+                    itemsYear.filter(d => d.mainTopic === topic).length
+                );
+
+                return {
+                    label: `ปี ${yr}`,
+                    data: counts,
+                    backgroundColor: yearColors[idx % yearColors.length],
+                    borderRadius: 6
+                };
+            });
+
+            const shortLabels = [
+                "1. ด้านผลการดำเนินงาน",
+                "2. ด้านการเงิน",
+                "3. ด้านการดำเนินงาน",
+                "4. ด้านการปฏิบัติตามกฎระเบียบ"
+            ];
+
+            mainTopicBarChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: shortLabels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11, family: 'Prompt' } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} รายการ`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 10, family: 'Prompt' } } },
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10, family: 'Prompt' } } }
+                    }
+                }
+            });
+
+            // Update Summary Table
+            const tbody = document.getElementById("main-topic-summary-tbody");
+            tbody.innerHTML = "";
+
+            STRICT_MAIN_TOPICS.forEach((topic, idx) => {
+                const totalFiltered = filteredData.length || 1;
+                const grandTotalTopic = filteredData.filter(d => d.mainTopic === topic).length;
+                const grandPct = ((grandTotalTopic / totalFiltered) * 100).toFixed(1);
+
+                let yearBreakdownHtml = sortedYears.map(yr => {
+                    const cnt = filteredData.filter(d => d.year === yr && d.mainTopic === topic).length;
+                    const totalYr = filteredData.filter(d => d.year === yr).length || 1;
+                    const pct = ((cnt / totalYr) * 100).toFixed(1);
+                    return `ปี ${yr}: <strong class="text-slate-900">${cnt}</strong> (${pct}%)`;
+                }).join(" | ");
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-2 font-semibold text-slate-800">${shortLabels[idx]}</td>
+                    <td class="p-2 text-center text-slate-600">${yearBreakdownHtml}</td>
+                    <td class="p-2 text-right font-bold text-amber-600">${grandTotalTopic} (${grandPct}%)</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderTop10DeptsChart() {
+            const ctx = document.getElementById("top10DeptsChart").getContext("2d");
+            if (top10DeptsChartInstance) top10DeptsChartInstance.destroy();
+
+            const deptCounts = {};
+            filteredData.forEach(d => {
+                deptCounts[d.department] = (deptCounts[d.department] || 0) + 1;
+            });
+
+            const sortedDepts = Object.keys(deptCounts)
+                .map(dept => ({ dept, count: deptCounts[dept] }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 10);
+
+            const labels = sortedDepts.map(d => d.dept);
+            const data = sortedDepts.map(d => d.count);
+
+            top10DeptsChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length ? labels : ['ไม่มีข้อมูล'],
+                    datasets: [{
+                        label: 'จำนวนข้อตรวจพบ',
+                        data: data.length ? data : [0],
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 6,
+                        barThickness: 14, // Slim explicit thickness
+                        categoryPercentage: 0.65,
+                        barPercentage: 0.8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (c) => ` จำนวน: ${c.raw} ประเด็น` } }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10, family: 'Prompt' } } },
+                        y: { 
+                            ticks: { font: { size: 10, family: 'Prompt' } },
+                            grid: { display: false }
+                        }
+                    },
+                    onClick: (evt, activeEls) => {
+                        if (activeEls.length > 0) {
+                            const index = activeEls[0].index;
+                            const selectedDeptName = labels[index];
+                            if (selectedDeptName && selectedDeptName !== 'ไม่มีข้อมูล') {
+                                onDeptChange(selectedDeptName);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAuditTable() {
+            const tbody = document.getElementById("main-audit-tbody");
+            tbody.innerHTML = "";
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">ไม่พบข้อมูลตรงตามตัวกรองที่เลือก</td></tr>`;
+                document.getElementById("record-count-tag").innerText = "แสดงผล 0 รายการ";
+                return;
+            }
+
+            filteredData.forEach(item => {
+                let badgeStyle = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                if (item.risk === 'ปานกลาง') badgeStyle = 'bg-amber-100 text-amber-800 border-amber-200';
+                if (item.risk === 'ค่อนข้างสูง') badgeStyle = 'bg-orange-100 text-orange-800 border-orange-200';
+                if (item.risk === 'สูง') badgeStyle = 'bg-red-100 text-red-800 border-red-200';
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-amber-50/50 transition cursor-pointer";
+                tr.onclick = (e) => {
+                    if (e.target.closest('button') || e.target.closest('a')) return;
+                    openDetailModal(item.id);
+                };
+
+                const reportBtnHtml = item.reportUrl 
+                    ? `<a href="${item.reportUrl}" target="_blank" onclick="event.stopPropagation()" class="px-2.5 py-1 text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-1">
+                        📄 รายงานฉบับเต็ม ↗
+                       </a>`
+                    : `<span class="text-slate-300 font-mono text-[11px]">-</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${item.year}</td>
+                    <td class="p-3 font-medium text-slate-800 break-words">${item.department}</td>
+                    <td class="p-3 font-medium text-slate-600">${item.type || 'ข้อตรวจพบปีปัจจุบัน'}</td>
+                    <td class="p-3 text-slate-700 font-medium">${item.mainTopic}</td>
+                    <td class="p-3 text-slate-700">${item.subTopic}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2.5 py-1 rounded-full border text-[11px] font-bold ${badgeStyle}">
+                            ${item.risk}
+                        </span>
+                    </td>
+                    <td class="p-3 text-slate-600">
+                        <div class="line-clamp-2 leading-relaxed" title="คลิกเพื่อดูรายละเอียดทั้งหมด">
+                            ${item.finding || 'แสดงรายการ'}
+                        </div>
+                    </td>
+                    <td class="p-3 text-center">${reportBtnHtml}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex justify-center items-center gap-1.5" onclick="event.stopPropagation()">
+                            <button onclick="editRecord(${item.id})" class="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition" title="แก้ไข">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteRecord(${item.id})" class="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition" title="ลบ">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("record-count-tag").innerText = `แสดงผล ${filteredData.length} รายการ`;
+        }
+
+        // Modal Functions
+        function openDetailModal(id) {
+            const item = rawData.find(d => d.id === id);
+            if (!item) return;
+
+            document.getElementById("modal-subtitle").innerText = `ปีงบประมาณ ${item.year} | ส่วนงาน: ${item.department}`;
+            document.getElementById("modal-type").innerText = item.type || "ข้อตรวจพบปีปัจจุบัน";
+
+            let badgeStyle = 'bg-emerald-100 text-emerald-800';
+            if (item.risk === 'ปานกลาง') badgeStyle = 'bg-amber-100 text-amber-800';
+            if (item.risk === 'ค่อนข้างสูง') badgeStyle = 'bg-orange-100 text-orange-800';
+            if (item.risk === 'สูง') badgeStyle = 'bg-red-100 text-red-800';
+
+            const riskBadge = document.getElementById("modal-risk-badge");
+            riskBadge.className = `px-2.5 py-0.5 rounded-full font-bold text-[11px] ${badgeStyle}`;
+            riskBadge.innerText = item.risk;
+
+            document.getElementById("modal-main-topic").innerText = item.mainTopic;
+            document.getElementById("modal-sub-topic").innerText = item.subTopic;
+            document.getElementById("modal-finding-text").innerText = item.finding || "ไม่มีข้อความรายละเอียด";
+            document.getElementById("modal-recommendation-text").innerText = item.recommendation || "ไม่มีข้อแนะนำ";
+
+            const linkBox = document.getElementById("modal-report-link-box");
+            if (item.reportUrl) {
+                linkBox.innerHTML = `
+                    <a href="${item.reportUrl}" target="_blank" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center block transition">
+                        📄 เปิดรายงานฉบับเต็ม / MS List ↗
+                    </a>
+                `;
+            } else {
+                linkBox.innerHTML = `<p class="text-slate-400 text-center italic">ไม่มีลิงก์แนบสำหรับรายการนี้</p>`;
+            }
+
+            document.getElementById("detail-modal").classList.remove("hidden");
+        }
+
+        function openAllDeptsModal() {
+            renderAllDeptsModalTable();
+            document.getElementById("all-depts-modal").classList.remove("hidden");
+        }
+
+        function renderAllDeptsModalTable() {
+            const tbody = document.getElementById("all-depts-modal-tbody");
+            tbody.innerHTML = "";
+
+            const deptStats = {};
+            filteredData.forEach(d => {
+                if (!deptStats[d.department]) {
+                    deptStats[d.department] = { total: 0, low: 0, med: 0, high: 0, crit: 0 };
+                }
+                deptStats[d.department].total++;
+                if (d.risk === "ต่ำ") deptStats[d.department].low++;
+                if (d.risk === "ปานกลาง") deptStats[d.department].med++;
+                if (d.risk === "ค่อนข้างสูง") deptStats[d.department].high++;
+                if (d.risk === "สูง") deptStats[d.department].crit++;
+            });
+
+            const sortedList = Object.keys(deptStats)
+                .map(dept => ({ dept, ...deptStats[dept] }))
+                .sort((a, b) => b.total - a.total);
+
+            sortedList.forEach((item, idx) => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 text-center text-slate-400 font-bold">${idx + 1}</td>
+                    <td class="p-3 font-semibold text-slate-800">${item.dept}</td>
+                    <td class="p-3 text-center font-extrabold text-amber-600">${item.total}</td>
+                    <td class="p-3 text-center font-bold text-emerald-600">${item.low}</td>
+                    <td class="p-3 text-center font-bold text-amber-600">${item.med}</td>
+                    <td class="p-3 text-center font-bold text-orange-600">${item.high}</td>
+                    <td class="p-3 text-center font-bold text-red-600">${item.crit}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="filterByDeptFromModal('${item.dept}')" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11px] font-bold transition">
+                            🎯 กรองส่วนงานนี้
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterByDeptFromModal(dept) {
+            closeModal("all-depts-modal");
+            onDeptChange(dept);
+        }
+
+        function filterDeptsModalTable() {
+            const query = document.getElementById("dept-search-input").value.toLowerCase();
+            const rows = document.querySelectorAll("#all-depts-modal-tbody tr");
+            rows.forEach(tr => {
+                const text = tr.children[1].innerText.toLowerCase();
+                tr.style.display = text.includes(query) ? "" : "none";
+            });
+        }
+
+        function openFormModal(isEdit = false) {
+            document.getElementById("form-modal-title").innerText = isEdit ? "แก้ไขข้อตรวจพบและประเด็นความเสี่ยง" : "เพิ่มข้อตรวจพบและประเด็นความเสี่ยงใหม่";
+            document.getElementById("form-icon").className = isEdit ? "fa-solid fa-pen-to-square" : "fa-solid fa-plus";
+            if (!isEdit) {
+                document.getElementById("audit-record-form").reset();
+                document.getElementById("form-record-id").value = "";
+                document.getElementById("form-year").value = "2569";
+                onFormMainTopicChange(STRICT_MAIN_TOPICS[0]);
+            }
+            document.getElementById("form-modal").classList.remove("hidden");
+        }
+
+        function onFormMainTopicChange(mainVal) {
+            const list = document.getElementById("form-sub-topic-list");
+            const norm = normalizeMainTopic(mainVal);
+            const subs = MASTER_PRADEN_MAP[norm] || [];
+            list.innerHTML = subs.map(s => `<option value="${s}">`).join("");
+        }
+
+        function saveRecord(e) {
+            e.preventDefault();
+            const idVal = document.getElementById("form-record-id").value;
+            const year = document.getElementById("form-year").value.trim();
+            const dept = document.getElementById("form-dept").value.trim();
+            const type = document.getElementById("form-type").value;
+            const risk = document.getElementById("form-risk").value;
+            const mainTopic = normalizeMainTopic(document.getElementById("form-main-topic").value);
+            const subTopic = document.getElementById("form-sub-topic").value.trim();
+            const finding = document.getElementById("form-finding").value.trim();
+            const recommendation = document.getElementById("form-recommendation").value.trim();
+            const reportUrl = extractSharePointUrl(document.getElementById("form-report-url").value.trim());
+
+            if (idVal) {
+                const item = rawData.find(d => d.id === parseInt(idVal));
+                if (item) {
+                    Object.assign(item, { year, department: dept, type, risk, mainTopic, subTopic, finding, recommendation, reportUrl });
+                }
+            } else {
+                const newId = rawData.length ? Math.max(...rawData.map(d => d.id)) + 1 : 1;
+                rawData.push({ id: newId, year, department: dept, type, risk, mainTopic, subTopic, finding, recommendation, reportUrl });
+            }
+
+            closeModal("form-modal");
+            initDashboard();
+        }
+
+        function editRecord(id) {
+            const item = rawData.find(d => d.id === id);
+            if (!item) return;
+
+            document.getElementById("form-record-id").value = item.id;
+            document.getElementById("form-year").value = item.year;
+            document.getElementById("form-dept").value = item.department;
+            document.getElementById("form-type").value = item.type || "ข้อตรวจพบปีปัจจุบัน";
+            document.getElementById("form-risk").value = item.risk;
+            document.getElementById("form-main-topic").value = item.mainTopic;
+            onFormMainTopicChange(item.mainTopic);
+            document.getElementById("form-sub-topic").value = item.subTopic;
+            document.getElementById("form-finding").value = item.finding;
+            document.getElementById("form-recommendation").value = item.recommendation;
+            document.getElementById("form-report-url").value = item.reportUrl;
+
+            openFormModal(true);
+        }
+
+        function deleteRecord(id) {
+            if (confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) {
+                rawData = rawData.filter(d => d.id !== id);
+                initDashboard();
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add("hidden");
+        }
+
+        function refreshData() {
+            initDashboard();
+        }
+
+        // CSV File Handling
+        function handleFileUpload(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: false,
+                skipEmptyLines: true,
+                encoding: "UTF-8",
+                complete: function(results) {
+                    if (results.data && results.data.length > 1) {
+                        const rows = results.data.slice(1); // skip header
+                        rawData = rows.map((r, idx) => {
+                            const year = String(r[1] || "2569").trim();
+                            const dept = String(r[2] || "ไม่ระบุ").trim();
+                            const rawMain = String(r[4] || "").trim();
+                            const mainTopic = normalizeMainTopic(rawMain);
+                            const subTopic = String(r[5] || "ทั่วไป").trim();
+                            const rawType = String(r[6] || "").trim();
+                            const type = rawType.includes("ติดตาม") ? "ติดตามงานเดิม" : "ข้อตรวจพบปีปัจจุบัน";
+                            const risk = String(r[7] || "ต่ำ").trim();
+                            const finding = extractCleanText(r[8]);
+                            const recommendation = extractCleanText(r[9]);
+                            const reportUrl = extractSharePointUrl(r[10]);
+
+                            return {
+                                id: idx + 1,
+                                year,
+                                department: dept,
+                                type,
+                                mainTopic,
+                                subTopic,
+                                risk,
+                                finding,
+                                recommendation,
+                                reportUrl
+                            };
+                        });
+
+                        document.getElementById("status-text").innerText = `นำเข้าสำเร็จ (${rawData.length} รายการ)`;
+                        initDashboard();
+                    }
+                }
+            });
+        }
+
+        function exportUpdatedCSV() {
+            const csvRows = [
+                ["ลำดับ", "ปี", "ส่วนงาน", "วันที่ออกรายงาน", "ประเด็นหลัก", "ประเด็นย่อย", "ประเภท", "ระดับความเสี่ยง", "ข้อตรวจพบ", "ข้อเสนอแนะ", "รายงานฉบับเต็ม"]
+            ];
+
+            rawData.forEach((item, idx) => {
+                csvRows.push([
+                    idx + 1,
+                    item.year,
+                    item.department,
+                    "",
+                    item.mainTopic,
+                    item.subTopic,
+                    item.type,
+                    item.risk,
+                    item.finding,
+                    item.recommendation,
+                    item.reportUrl
+                ]);
+            });
+
+            const csvContent = "\uFEFF" + csvRows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Audit_Risk_Export_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+    </script>
+</body>
+</html>
