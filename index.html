@@ -218,6 +218,43 @@
       box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
     }
 
+    /* Action buttons in table */
+    .row-action-btn {
+      opacity: 0.4;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    tr:hover .row-action-btn {
+      opacity: 1;
+    }
+    .row-action-btn:hover {
+      transform: scale(1.15);
+      color: #e11d48 !important;
+    }
+
+    /* Table Toolbar */
+    .table-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: -10px;
+      margin-bottom: 15px;
+    }
+
+    /* Modal dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      place-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.active {
+      display: grid;
+    }
+
     /* Loading Spinner */
     .spinner {
       border: 2px solid #f3f3f3;
@@ -265,11 +302,21 @@
         🔄 อัปเดตจาก Google Sheets
       </button>
 
+      <button onclick="saveToGoogleSheets()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm flex items-center gap-2 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+        💾 บันทึกกลับไปยัง Google Sheets
+      </button>
+
       <label class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg cursor-pointer transition shadow-sm flex items-center gap-2 text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
         📂 นำเข้าจากไฟล์ Excel (.xlsx)
         <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="importExcel(event)">
       </label>
+
+      <button onclick="exportToExcel()" class="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm flex items-center gap-2 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        📥 ส่งออกเป็นไฟล์ Excel (.xlsx)
+      </button>
 
       <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm flex items-center gap-2 text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
@@ -280,9 +327,46 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
         🗑️ ล้างข้อมูลตาราง
       </button>
+
+      <a href="https://ampuis.github.io/audit-team/" target="_blank" rel="noopener noreferrer" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm flex items-center gap-2 text-sm no-underline">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+        👥 ไปยังหน้า Audit Team ↗
+      </a>
     </div>
 
     <div id="importStatus" class="text-sm font-medium text-blue-700 flex items-center gap-2"></div>
+  </div>
+
+  <!-- Apps Script Modal -->
+  <div id="gasModal" class="modal-overlay no-print">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex justify-between items-center mb-4 border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          ⚙️ ตั้งค่าเชื่อมต่อ Google Sheets Web App
+        </h3>
+        <button onclick="closeGasModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <p class="text-xs text-slate-600 mb-3">
+        เนื่องจาก Google Sheets มีระบบรักษาความปลอดภัย การเขียนข้อมูลกลับจำเป็นต้องเชื่อมต่อผ่าน <b>Google Apps Script Web App</b> (ตั้งค่าครั้งเดียว):
+      </p>
+      <ol class="text-xs text-slate-500 list-decimal pl-5 space-y-1 mb-4">
+        <li>เปิด Google Sheet ของคุณ ไปที่เมนู <b>ส่วนขยาย (Extensions) &gt; Apps Script</b></li>
+        <li>วางโค้ด Web App แล้วกด <b>ทำให้ใช้งานได้ (Deploy) &gt; การปรับใช้รายการใหม่ (New Deployment)</b></li>
+        <li>เลือกประเภทเป็น <b>เว็บแอป (Web App)</b> และตั้งค่าสิทธิ์เป็น <b>ทุกคน (Anyone)</b></li>
+        <li>คัดลอก Web App URL นำมาวางในช่องด้านล่างนี้</li>
+      </ol>
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Apps Script Web App URL:</label>
+        <input type="url" id="gasWebAppUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs p-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+      </div>
+      <div class="flex justify-between items-center">
+        <button onclick="copyGasCodeSnippet()" class="text-xs text-indigo-600 hover:underline font-semibold">📋 คัดลอกโค้ด Apps Script ตัวอย่าง</button>
+        <div class="flex gap-2">
+          <button onclick="closeGasModal()" class="px-3 py-1.5 text-xs rounded-lg border text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+          <button onclick="saveGasUrlAndSync()" class="px-4 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold shadow-sm">บันทึก & ซิงค์</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tab Buttons Navigation -->
@@ -302,7 +386,14 @@
 
     <!-- SHEET 1 CONTAINER -->
     <div id="sheet1" class="paper-page tab-content">
-      <h2 class="text-xl font-bold text-indigo-900 mb-1">1. แผนงานตรวจสอบสาย 1 และ สาย 3</h2>
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-xl font-bold text-indigo-900">1. แผนงานตรวจสอบสาย 1 และ สาย 3</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet1')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet1" class="audit-table">
@@ -311,9 +402,10 @@
             <th style="width: 7%;">ลำดับ</th>
             <th style="width: 25%;">หน่วยงานรับตรวจ</th>
             <th style="width: 23%;">กิจกรรมหลัก</th>
-            <th style="width: 31%;">กิจกรรมย่อย</th>
+            <th style="width: 27%;">กิจกรรมย่อย</th>
             <th style="width: 7%;">Man-Day</th>
             <th style="width: 7%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
           </tr>
         </thead>
         <tbody>
@@ -352,7 +444,14 @@
 
     <!-- SHEET 2 CONTAINER -->
     <div id="sheet2" class="paper-page tab-content">
-      <h2 class="text-xl font-bold text-indigo-900 mb-1">2. แผนงานตรวจสอบสาย 2</h2>
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-xl font-bold text-indigo-900">2. แผนงานตรวจสอบสาย 2</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet2')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet2" class="audit-table">
@@ -361,9 +460,10 @@
             <th style="width: 7%;">ลำดับ</th>
             <th style="width: 25%;">หน่วยงานรับตรวจ</th>
             <th style="width: 23%;">กิจกรรมหลัก</th>
-            <th style="width: 31%;">กิจกรรมย่อย</th>
+            <th style="width: 27%;">กิจกรรมย่อย</th>
             <th style="width: 7%;">Man-Day</th>
             <th style="width: 7%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
           </tr>
         </thead>
         <tbody>
@@ -402,7 +502,14 @@
 
     <!-- SHEET 3 CONTAINER (ตรวจสอบพิเศษ พร้อมคอลัมน์ ทีมรับผิดชอบ) -->
     <div id="sheet3" class="paper-page tab-content">
-      <h2 class="text-xl font-bold text-indigo-900 mb-1">3. แผนงานตรวจสอบพิเศษ</h2>
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-xl font-bold text-indigo-900">3. แผนงานตรวจสอบพิเศษ</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet3')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet3" class="audit-table">
@@ -410,10 +517,11 @@
           <tr>
             <th style="width: 7%;">ลำดับ</th>
             <th style="width: 25%;">หน่วยงานรับตรวจ</th>
-            <th style="width: 32%;">กิจกรรม</th>
-            <th style="width: 18%;">ทีมรับผิดชอบ</th>
+            <th style="width: 30%;">กิจกรรม</th>
+            <th style="width: 16%;">ทีมรับผิดชอบ</th>
             <th style="width: 9%;">Man-Day</th>
             <th style="width: 9%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
           </tr>
         </thead>
         <tbody>
@@ -448,19 +556,27 @@
 
     <!-- SHEET 4 CONTAINER -->
     <div id="sheet4" class="paper-page tab-content">
-      <h2 class="text-xl font-bold text-indigo-900 mb-1">4. โครงการงบประมาณเงินแผ่นดิน</h2>
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-xl font-bold text-indigo-900">4. โครงการงบประมาณเงินแผ่นดิน</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet4')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet4" class="audit-table">
         <thead>
           <tr>
             <th style="width: 7%;">ลำดับ</th>
-            <th style="width: 32%;">โครงการ / ผลผลิต</th>
-            <th style="width: 16%;">งบประมาณ (บาท)</th>
-            <th style="width: 22%;">ส่วนงานรับผิดชอบ</th>
-            <th style="width: 11%;">ทีมผู้ตรวจ</th>
+            <th style="width: 30%;">โครงการ / ผลผลิต</th>
+            <th style="width: 15%;">งบประมาณ (บาท)</th>
+            <th style="width: 20%;">ส่วนงานรับผิดชอบ</th>
+            <th style="width: 12%;">ทีมผู้ตรวจ</th>
             <th style="width: 6%;">Man-Day</th>
             <th style="width: 6%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
           </tr>
         </thead>
         <tbody>
@@ -471,19 +587,27 @@
 
     <!-- SHEET 5 CONTAINER -->
     <div id="sheet5" class="paper-page tab-content">
-      <h2 class="text-xl font-bold text-indigo-900 mb-1">5. โครงการ Multiyear</h2>
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-xl font-bold text-indigo-900">5. โครงการ Multiyear</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet5')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet5" class="audit-table">
         <thead>
           <tr>
             <th style="width: 6%;">ลำดับ</th>
-            <th style="width: 32%;">ชื่อโครงการ Multiyear</th>
+            <th style="width: 30%;">ชื่อโครงการ Multiyear</th>
             <th style="width: 14%;">ระยะเวลา</th>
-            <th style="width: 16%;">วงเงิน (บาท)</th>
-            <th style="width: 14%;">ทีมผู้ตรวจ</th>
+            <th style="width: 15%;">วงเงิน (บาท)</th>
+            <th style="width: 13%;">ทีมผู้ตรวจ</th>
             <th style="width: 9%;">Man-Day</th>
             <th style="width: 9%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
           </tr>
         </thead>
         <tbody>
@@ -494,7 +618,14 @@
 
     <!-- SHEET 6 CONTAINER -->
     <div id="sheet6" class="paper-page tab-content">
-      <h2 class="text-xl font-bold text-indigo-900 mb-1">6. สรุปภาพรวมแผนการตรวจสอบ</h2>
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-xl font-bold text-indigo-900">6. สรุปภาพรวมแผนการตรวจสอบ</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet6')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet6" class="audit-table">
@@ -502,9 +633,10 @@
           <tr>
             <th style="width: 8%;">ลำดับ</th>
             <th style="width: 32%;">ภารกิจ</th>
-            <th style="width: 44%;">ขอบเขต</th>
+            <th style="width: 40%;">ขอบเขต</th>
             <th style="width: 8%;">Manday</th>
             <th style="width: 8%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
           </tr>
         </thead>
         <tbody>
@@ -556,6 +688,187 @@
         }
       }
       return '';
+    }
+
+    // Delete a specific row
+    function deleteRow(btn) {
+      const tr = btn.closest('tr');
+      if (tr) {
+        tr.remove();
+        recalculateTotalsFromTable();
+      }
+    }
+
+    // Add a new editable row dynamically
+    function addNewRow(sheetId) {
+      const tbody = document.querySelector(`#table-${sheetId} tbody`);
+      if (!tbody) return;
+
+      const tr = document.createElement('tr');
+      tr.className = 'bg-entity-even';
+
+      let rowHtml = '';
+      if (sheetId === 'sheet1' || sheetId === 'sheet2') {
+        rowHtml = `
+          <td class="text-center font-bold" contenteditable="true"></td>
+          <td class="font-bold" contenteditable="true">หน่วยงานใหม่</td>
+          <td contenteditable="true">กิจกรรมหลัก</td>
+          <td contenteditable="true">กิจกรรมย่อย</td>
+          <td class="text-center font-bold" contenteditable="true">0</td>
+          <td class="text-center" contenteditable="true">1</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
+        `;
+      } else if (sheetId === 'sheet3') {
+        rowHtml = `
+          <td class="text-center font-bold" contenteditable="true"></td>
+          <td class="font-bold" contenteditable="true">หน่วยงานใหม่</td>
+          <td contenteditable="true">กิจกรรม</td>
+          <td class="text-center" contenteditable="true">ทีมผู้ตรวจ</td>
+          <td class="text-center font-bold" contenteditable="true">0</td>
+          <td class="text-center" contenteditable="true">1</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
+        `;
+      } else if (sheetId === 'sheet4') {
+        rowHtml = `
+          <td class="text-center font-bold" contenteditable="true"></td>
+          <td contenteditable="true">โครงการใหม่</td>
+          <td class="text-right font-bold" contenteditable="true">0</td>
+          <td contenteditable="true">ส่วนงานรับผิดชอบ</td>
+          <td class="text-center" contenteditable="true">ทีมผู้ตรวจ</td>
+          <td class="text-center font-bold" contenteditable="true">0</td>
+          <td class="text-center" contenteditable="true">1</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
+        `;
+      } else if (sheetId === 'sheet5') {
+        rowHtml = `
+          <td class="text-center font-bold" contenteditable="true"></td>
+          <td contenteditable="true">ชื่อโครงการ Multiyear</td>
+          <td class="text-center" contenteditable="true">-</td>
+          <td class="text-right font-bold" contenteditable="true">0</td>
+          <td class="text-center" contenteditable="true">ทีมผู้ตรวจ</td>
+          <td class="text-center font-bold" contenteditable="true">0</td>
+          <td class="text-center" contenteditable="true">1</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
+        `;
+      } else if (sheetId === 'sheet6') {
+        rowHtml = `
+          <td class="text-center font-bold" contenteditable="true"></td>
+          <td contenteditable="true">ภารกิจใหม่</td>
+          <td contenteditable="true">ขอบเขต</td>
+          <td class="text-center font-bold" contenteditable="true">0</td>
+          <td class="text-center" contenteditable="true">1</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
+        `;
+      }
+
+      tr.innerHTML = rowHtml;
+      tbody.appendChild(tr);
+
+      // Focus first editable cell
+      const firstCell = tr.querySelector('td[contenteditable="true"]');
+      if (firstCell) firstCell.focus();
+    }
+
+    // Google Apps Script Sync
+    function saveToGoogleSheets() {
+      const savedGasUrl = localStorage.getItem('audit_gas_webapp_url');
+      if (!savedGasUrl) {
+        document.getElementById('gasModal').classList.add('active');
+        return;
+      }
+      sendDataToGas(savedGasUrl);
+    }
+
+    function closeGasModal() {
+      document.getElementById('gasModal').classList.remove('active');
+    }
+
+    function saveGasUrlAndSync() {
+      const url = document.getElementById('gasWebAppUrlInput').value.trim();
+      if (!url || !url.startsWith('http')) {
+        document.getElementById('importStatus').innerText = '⚠️ กรุณาระบุ URL ของ Google Apps Script Web App ให้ถูกต้อง';
+        return;
+      }
+      localStorage.setItem('audit_gas_webapp_url', url);
+      closeGasModal();
+      sendDataToGas(url);
+    }
+
+    function copyGasCodeSnippet() {
+      const code = `function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // บันทึกแต่ละชีท
+    for (var sheetName in payload) {
+      var sheet = ss.getSheetByName(sheetName);
+      if (sheet) {
+        var data = payload[sheetName];
+        sheet.clearContents();
+        if (data.length > 0) {
+          sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+      const dummy = document.createElement('textarea');
+      dummy.value = code;
+      document.body.appendChild(dummy);
+      dummy.select();
+      document.execCommand('copy');
+      document.body.removeChild(dummy);
+      alert('คัดลอกโค้ด Google Apps Script เรียบร้อยแล้ว! สามารถนำไปวางใน Extensions > Apps Script ของ Google Sheet ได้ทันที');
+    }
+
+    async function sendDataToGas(url) {
+      const statusEl = document.getElementById('importStatus');
+      statusEl.innerHTML = '<span class="spinner"></span> กำลังบันทึกข้อมูลไปยัง Google Sheets...';
+
+      // Extract live table data
+      const sheetsPayload = {};
+      const sheetConfigs = [
+        { id: 'table-sheet1', name: 'สาย 1 และ 3' },
+        { id: 'table-sheet2', name: 'สาย 2' },
+        { id: 'table-sheet3', name: 'งานตรวจสอบพิเศษ-ใช้' },
+        { id: 'table-sheet4', name: 'เงินแผ่นดิน-ใช้' },
+        { id: 'table-sheet5', name: 'multiyear-ใช้' },
+        { id: 'table-sheet6', name: 'สรุปภาพรวม' }
+      ];
+
+      sheetConfigs.forEach(cfg => {
+        const rows = [];
+        const table = document.getElementById(cfg.id);
+        if (table) {
+          table.querySelectorAll('tr').forEach(tr => {
+            const rowData = [];
+            tr.querySelectorAll('th:not(.no-print), td:not(.no-print)').forEach(cell => {
+              rowData.push(cell.innerText.trim());
+            });
+            if (rowData.length > 0) rows.push(rowData);
+          });
+        }
+        sheetsPayload[cfg.name] = rows;
+      });
+
+      try {
+        await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sheetsPayload)
+        });
+        statusEl.innerHTML = '✅ บันทึกข้อมูลไปยัง Google Sheets เรียบร้อยแล้ว!';
+      } catch (err) {
+        console.error("Save to Google Sheets Error:", err);
+        statusEl.innerHTML = '❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลไปยัง Google Sheets โปรดตรวจสอบ Web App URL';
+      }
     }
 
     // Clear Table Data
@@ -726,7 +1039,7 @@
         if (item.type === 'banner') {
           const tr = document.createElement('tr');
           tr.className = 'group-header';
-          tr.innerHTML = `<td colspan="6" contenteditable="true">${item.title}</td>`;
+          tr.innerHTML = `<td colspan="6" contenteditable="true">${item.title}</td><td class="no-print"></td>`;
           tbody.appendChild(tr);
         } else if (item.type === 'summary') {
           const tr = document.createElement('tr');
@@ -735,6 +1048,7 @@
             <td colspan="4" class="text-center font-bold" contenteditable="true">${item.title}</td>
             <td class="text-center font-bold" contenteditable="true">${formatNumber(item.manDay)}</td>
             <td class="text-center font-bold" contenteditable="true">${item.auditors}</td>
+            <td class="no-print"></td>
           `;
           tbody.appendChild(tr);
         } else if (item.type === 'entity') {
@@ -756,6 +1070,7 @@
               <td class="${bgClass}" contenteditable="true"></td>
               <td class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>
               <td class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>
+              <td class="text-center no-print ${bgClass}"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
             `;
             tbody.appendChild(tr);
           } else {
@@ -777,6 +1092,7 @@
               if (maIndex === 0) {
                 html += `<td rowspan="${totalEntitySubRows}" class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>`;
                 html += `<td rowspan="${totalEntitySubRows}" class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>`;
+                html += `<td rowspan="${totalEntitySubRows}" class="text-center no-print ${bgClass}"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>`;
               }
 
               tr.innerHTML = html;
@@ -876,7 +1192,7 @@
         if (item.type === 'banner') {
           const tr = document.createElement('tr');
           tr.className = 'group-header';
-          tr.innerHTML = `<td colspan="6" contenteditable="true">${item.title}</td>`;
+          tr.innerHTML = `<td colspan="6" contenteditable="true">${item.title}</td><td class="no-print"></td>`;
           tbody.appendChild(tr);
         } else if (item.type === 'summary') {
           const tr = document.createElement('tr');
@@ -885,6 +1201,7 @@
             <td colspan="4" class="text-center font-bold" contenteditable="true">${item.title}</td>
             <td class="text-center font-bold" contenteditable="true">${formatNumber(item.manDay)}</td>
             <td class="text-center font-bold" contenteditable="true">${item.auditors}</td>
+            <td class="no-print"></td>
           `;
           tbody.appendChild(tr);
         } else if (item.type === 'entity') {
@@ -906,6 +1223,7 @@
               <td class="text-center ${bgClass}" contenteditable="true">${item.team}</td>
               <td class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>
               <td class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>
+              <td class="text-center no-print ${bgClass}"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
             `;
             tbody.appendChild(tr);
           } else {
@@ -926,6 +1244,7 @@
                 html += `<td rowspan="${actCount}" class="text-center ${bgClass}" contenteditable="true">${item.team}</td>`;
                 html += `<td rowspan="${actCount}" class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>`;
                 html += `<td rowspan="${actCount}" class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>`;
+                html += `<td rowspan="${actCount}" class="text-center no-print ${bgClass}"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>`;
               }
 
               tr.innerHTML = html;
@@ -969,6 +1288,7 @@
             <td colspan="2" contenteditable="true">${bannerText.replace(/\n/g, '<br>')}</td>
             <td class="text-right font-bold" contenteditable="true">${formatNumber(cellC)}</td>
             <td colspan="4" contenteditable="true"></td>
+            <td class="no-print"></td>
           `;
           tbody.appendChild(tr);
           return;
@@ -983,6 +1303,7 @@
             <td colspan="2" contenteditable="true"></td>
             <td class="text-center font-bold" contenteditable="true">${formatNumber(cellF)}</td>
             <td class="text-center font-bold" contenteditable="true">${cellG}</td>
+            <td class="no-print"></td>
           `;
           tbody.appendChild(tr);
           return;
@@ -997,6 +1318,7 @@
           <td class="text-center" contenteditable="true">${cellE}</td>
           <td class="text-center font-bold" contenteditable="true">${formatNumber(cellF)}</td>
           <td class="text-center" contenteditable="true">${cellG}</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1028,7 +1350,7 @@
           const tr = document.createElement('tr');
           tr.className = 'group-header';
           const bannerText = cellA ? (cellB ? `${cellA} ${cellB}` : cellA) : cellB;
-          tr.innerHTML = `<td colspan="7" contenteditable="true">${bannerText}</td>`;
+          tr.innerHTML = `<td colspan="7" contenteditable="true">${bannerText}</td><td class="no-print"></td>`;
           tbody.appendChild(tr);
           return;
         }
@@ -1042,6 +1364,7 @@
             <td contenteditable="true"></td>
             <td class="text-center font-bold" contenteditable="true">${formatNumber(cellF)}</td>
             <td class="text-center font-bold" contenteditable="true">${cellG}</td>
+            <td class="no-print"></td>
           `;
           tbody.appendChild(tr);
           return;
@@ -1056,6 +1379,7 @@
           <td class="text-center" contenteditable="true">${cellE}</td>
           <td class="text-center font-bold" contenteditable="true">${formatNumber(cellF)}</td>
           <td class="text-center" contenteditable="true">${cellG}</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1085,7 +1409,7 @@
           const tr = document.createElement('tr');
           tr.className = 'group-header';
           const bannerText = cellA ? (cellB ? `${cellA} ${cellB}` : cellA) : cellB;
-          tr.innerHTML = `<td colspan="5" contenteditable="true">${bannerText}</td>`;
+          tr.innerHTML = `<td colspan="5" contenteditable="true">${bannerText}</td><td class="no-print"></td>`;
           tbody.appendChild(tr);
           return;
         }
@@ -1097,6 +1421,7 @@
             <td colspan="3" class="text-center font-bold" contenteditable="true">${cellA || cellB}</td>
             <td class="text-center font-bold" contenteditable="true">${formatNumber(cellD)}</td>
             <td class="text-center font-bold" contenteditable="true">${cellE}</td>
+            <td class="no-print"></td>
           `;
           tbody.appendChild(tr);
           return;
@@ -1109,6 +1434,7 @@
           <td contenteditable="true">${cellC}</td>
           <td class="text-center font-bold" contenteditable="true">${formatNumber(cellD)}</td>
           <td class="text-center" contenteditable="true">${cellE}</td>
+          <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1126,8 +1452,8 @@
       let s1Total = 0;
       document.querySelectorAll('#table-sheet1 tbody tr').forEach(tr => {
         const td = tr.querySelectorAll('td');
-        if (td.length >= 5) {
-          let val = parseFloat((td[td.length - 2].innerText || '').replace(/,/g, ''));
+        if (td.length >= 6) {
+          let val = parseFloat((td[td.length - 3].innerText || '').replace(/,/g, ''));
           if (!isNaN(val)) s1Total += val;
         }
       });
@@ -1140,8 +1466,8 @@
       let s2Total = 0;
       document.querySelectorAll('#table-sheet2 tbody tr').forEach(tr => {
         const td = tr.querySelectorAll('td');
-        if (td.length >= 5) {
-          let val = parseFloat((td[td.length - 2].innerText || '').replace(/,/g, ''));
+        if (td.length >= 6) {
+          let val = parseFloat((td[td.length - 3].innerText || '').replace(/,/g, ''));
           if (!isNaN(val)) s2Total += val;
         }
       });
@@ -1155,6 +1481,41 @@
     window.addEventListener('DOMContentLoaded', () => {
       fetchGoogleSheet();
     });
+
+    // Export current live editable tables to an Excel (.xlsx) file
+    function exportToExcel() {
+      const wb = XLSX.utils.book_new();
+      const sheetConfigs = [
+        { id: 'table-sheet1', name: 'สาย 1 และ 3' },
+        { id: 'table-sheet2', name: 'สาย 2' },
+        { id: 'table-sheet3', name: 'ตรวจสอบพิเศษ' },
+        { id: 'table-sheet4', name: 'งบเงินแผ่นดิน' },
+        { id: 'table-sheet5', name: 'Multiyear' },
+        { id: 'table-sheet6', name: 'สรุปภาพรวม' }
+      ];
+
+      let sheetsAdded = 0;
+      sheetConfigs.forEach(cfg => {
+        const tableEl = document.getElementById(cfg.id);
+        if (tableEl && tableEl.querySelector('tbody tr')) {
+          // Clone table and remove no-print action column for clean excel export
+          const cloneTable = tableEl.cloneNode(true);
+          cloneTable.querySelectorAll('.no-print').forEach(el => el.remove());
+          
+          const ws = XLSX.utils.table_to_sheet(cloneTable, { raw: false });
+          XLSX.utils.book_append_sheet(wb, ws, cfg.name);
+          sheetsAdded++;
+        }
+      });
+
+      if (sheetsAdded === 0) {
+        document.getElementById('importStatus').innerHTML = '⚠️ ไม่มีข้อมูลในตารางสำหรับส่งออก';
+        return;
+      }
+
+      XLSX.writeFile(wb, "แผนการตรวจสอบประจำปี_2570.xlsx");
+      document.getElementById('importStatus').innerHTML = '✅ ส่งออกไฟล์ Excel (ข้อมูลล่าสุดที่แก้ไข) เรียบร้อยแล้ว!';
+    }
   </script>
 </body>
 </html>
