@@ -73,7 +73,6 @@
       border-radius: 2px;
     }
 
-    /* Alternating Entity Row Color */
     .audit-table td.bg-entity-even {
       background-color: #fffdf5 !important;
     }
@@ -120,7 +119,6 @@
     .text-right { text-align: right !important; }
     .font-bold { font-weight: 700 !important; }
 
-    /* Summary Card Styling (Orange/Peach Theme) */
     .summary-card {
       background-color: #ffffff;
       border: 1px solid #fdba74;
@@ -220,6 +218,22 @@
       box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
     }
 
+    /* Loading Spinner */
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #4f46e5;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     /* Print Setup */
     @media print {
       body {
@@ -246,6 +260,11 @@
 
   <div class="controls-container no-print">
     <div class="flex flex-wrap items-center gap-3">
+      <button onclick="fetchGoogleSheet()" id="btnSyncGSheet" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm flex items-center gap-2 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        🔄 อัปเดตจาก Google Sheets
+      </button>
+
       <label class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg cursor-pointer transition shadow-sm flex items-center gap-2 text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
         📂 นำเข้าจากไฟล์ Excel (.xlsx)
@@ -263,7 +282,7 @@
       </button>
     </div>
 
-    <div id="importStatus" class="text-sm font-medium text-emerald-700"></div>
+    <div id="importStatus" class="text-sm font-medium text-blue-700 flex items-center gap-2"></div>
   </div>
 
   <!-- Tab Buttons Navigation -->
@@ -275,6 +294,7 @@
       <button class="tab-btn" onclick="switchTab('sheet3')">3. ตรวจสอบพิเศษ</button>
       <button class="tab-btn" onclick="switchTab('sheet4')">4. งบเงินแผ่นดิน</button>
       <button class="tab-btn" onclick="switchTab('sheet5')">5. Multiyear</button>
+      <button class="tab-btn" onclick="switchTab('sheet6')">6. สรุปภาพรวม</button>
     </div>
   </div>
 
@@ -283,7 +303,7 @@
     <!-- SHEET 1 CONTAINER -->
     <div id="sheet1" class="paper-page tab-content">
       <h2 class="text-xl font-bold text-indigo-900 mb-1">1. แผนงานตรวจสอบสาย 1 และ สาย 3</h2>
-      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มนำเข้าไฟล์ Excel (.xlsx)</p>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet1" class="audit-table">
         <thead>
@@ -333,7 +353,7 @@
     <!-- SHEET 2 CONTAINER -->
     <div id="sheet2" class="paper-page tab-content">
       <h2 class="text-xl font-bold text-indigo-900 mb-1">2. แผนงานตรวจสอบสาย 2</h2>
-      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มนำเข้าไฟล์ Excel (.xlsx)</p>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet2" class="audit-table">
         <thead>
@@ -380,19 +400,20 @@
       </div>
     </div>
 
-    <!-- SHEET 3 CONTAINER -->
+    <!-- SHEET 3 CONTAINER (ตรวจสอบพิเศษ พร้อมคอลัมน์ ทีมรับผิดชอบ) -->
     <div id="sheet3" class="paper-page tab-content">
       <h2 class="text-xl font-bold text-indigo-900 mb-1">3. แผนงานตรวจสอบพิเศษ</h2>
-      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มนำเข้าไฟล์ Excel (.xlsx)</p>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet3" class="audit-table">
         <thead>
           <tr>
-            <th style="width: 8%;">ลำดับ</th>
-            <th style="width: 32%;">หน่วยงานรับตรวจ</th>
-            <th style="width: 44%;">กิจกรรม</th>
-            <th style="width: 8%;">Man-Day</th>
-            <th style="width: 8%;">จำนวนผู้ตรวจสอบ</th>
+            <th style="width: 7%;">ลำดับ</th>
+            <th style="width: 25%;">หน่วยงานรับตรวจ</th>
+            <th style="width: 32%;">กิจกรรม</th>
+            <th style="width: 18%;">ทีมรับผิดชอบ</th>
+            <th style="width: 9%;">Man-Day</th>
+            <th style="width: 9%;">จำนวนผู้ตรวจสอบ</th>
           </tr>
         </thead>
         <tbody>
@@ -428,7 +449,7 @@
     <!-- SHEET 4 CONTAINER -->
     <div id="sheet4" class="paper-page tab-content">
       <h2 class="text-xl font-bold text-indigo-900 mb-1">4. โครงการงบประมาณเงินแผ่นดิน</h2>
-      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มนำเข้าไฟล์ Excel (.xlsx)</p>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet4" class="audit-table">
         <thead>
@@ -451,7 +472,7 @@
     <!-- SHEET 5 CONTAINER -->
     <div id="sheet5" class="paper-page tab-content">
       <h2 class="text-xl font-bold text-indigo-900 mb-1">5. โครงการ Multiyear</h2>
-      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มนำเข้าไฟล์ Excel (.xlsx)</p>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet5" class="audit-table">
         <thead>
@@ -471,9 +492,33 @@
       </table>
     </div>
 
+    <!-- SHEET 6 CONTAINER -->
+    <div id="sheet6" class="paper-page tab-content">
+      <h2 class="text-xl font-bold text-indigo-900 mb-1">6. สรุปภาพรวมแผนการตรวจสอบ</h2>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
+
+      <table id="table-sheet6" class="audit-table">
+        <thead>
+          <tr>
+            <th style="width: 8%;">ลำดับ</th>
+            <th style="width: 32%;">ภารกิจ</th>
+            <th style="width: 44%;">ขอบเขต</th>
+            <th style="width: 8%;">Manday</th>
+            <th style="width: 8%;">จำนวนผู้ตรวจสอบ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dynamic Editable Content -->
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
   <script>
+    // Google Sheets Direct XLSX Export URL
+    const GSHEET_URL = "https://docs.google.com/spreadsheets/d/1jZaZoJmMUDOc5NfutDJQ5vdYBbrzr2ElLZK49jaEW6k/export?format=xlsx";
+
     // Tab Switcher
     function switchTab(tabId) {
       const tabs = document.querySelectorAll('.tab-btn');
@@ -503,7 +548,7 @@
     // Helper: Extract auditor count from row
     function extractAuditorVal(row) {
       if (!row || !Array.isArray(row)) return '';
-      for (let i = row.length - 1; i >= 4; i--) {
+      for (let i = row.length - 1; i >= 3; i--) {
         let v = row[i];
         if (v !== undefined && v !== null && v !== '') {
           let s = String(v).trim();
@@ -515,45 +560,42 @@
 
     // Clear Table Data
     function clearAllData() {
-      if (confirm("คุณต้องการล้างข้อมูลในตารางทั้งหมดใช่หรือไม่?")) {
-        for (let i = 1; i <= 5; i++) {
-          const tbody = document.querySelector(`#table-sheet${i} tbody`);
-          if (tbody) tbody.innerHTML = '';
-        }
-        document.getElementById('importStatus').innerText = 'ล้างข้อมูลตารางเรียบร้อยแล้ว';
+      for (let i = 1; i <= 6; i++) {
+        const tbody = document.querySelector(`#table-sheet${i} tbody`);
+        if (tbody) tbody.innerHTML = '';
+      }
+      document.getElementById('importStatus').innerText = 'ล้างข้อมูลตารางเรียบร้อยแล้ว';
+    }
+
+    async function fetchGoogleSheet() {
+      const statusEl = document.getElementById('importStatus');
+      statusEl.innerHTML = '<span class="spinner"></span> กำลังดึงข้อมูลจาก Google Sheets...';
+
+      try {
+        const response = await fetch(GSHEET_URL);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        
+        processWorkbook(new Uint8Array(arrayBuffer));
+        statusEl.innerHTML = '✅ ซิงค์ข้อมูลล่าสุดจาก Google Sheets สำเร็จเรียบร้อย!';
+      } catch (err) {
+        console.warn("Direct fetch error (likely CORS):", err);
+        statusEl.innerHTML = '⚠️ ไม่สามารถดึงจาก Google Sheets ได้โดยตรง (ติด CORS) สามารถกดปุ่ม <b>"📂 นำเข้าจากไฟล์ Excel"</b> เพื่ออัปโหลดไฟล์ได้ทันที';
       }
     }
 
-    // Main Import Function
+    // Local Excel Import Function
     function importExcel(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const statusEl = document.getElementById('importStatus');
-      statusEl.innerText = 'กำลังอ่านข้อมูลจากไฟล์ Excel...';
+      statusEl.innerHTML = '<span class="spinner"></span> กำลังอ่านข้อมูลจากไฟล์ Excel...';
 
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-
-          workbook.SheetNames.forEach((sheetName, sheetIdx) => {
-            if (sheetIdx >= 5) return;
-            const worksheet = workbook.Sheets[sheetName];
-            const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-            
-            const targetSheetId = `sheet${sheetIdx + 1}`;
-            
-            if (sheetIdx === 0 || sheetIdx === 1 || sheetIdx === 2) {
-              renderStandardSheet(targetSheetId, rawData, sheetIdx);
-            } else if (sheetIdx === 3) {
-              renderBudgetSheet(targetSheetId, rawData);
-            } else if (sheetIdx === 4) {
-              renderMultiyearSheet(targetSheetId, rawData);
-            }
-          });
-
+          processWorkbook(new Uint8Array(e.target.result));
           statusEl.innerText = `✅ นำเข้าข้อมูลจาก "${file.name}" สำเร็จเรียบร้อย! สามารถคลิกพิมพ์แก้ไขตัวเลขบนตารางได้ทันที`;
         } catch (err) {
           console.error("Error reading excel file:", err);
@@ -563,12 +605,36 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // Parse Standard Rows into Entity Blocks
-    function parseSheetRows(rows, sheetIdx) {
+    // Process Workbook Sheets
+    function processWorkbook(dataArray) {
+      const workbook = XLSX.read(dataArray, { type: 'array' });
+
+      workbook.SheetNames.forEach((sheetName, sheetIdx) => {
+        if (sheetIdx >= 6) return;
+        const worksheet = workbook.Sheets[sheetName];
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+        
+        const targetSheetId = `sheet${sheetIdx + 1}`;
+        
+        if (sheetIdx === 0 || sheetIdx === 1) {
+          renderStandardSheet(targetSheetId, rawData, sheetIdx);
+        } else if (sheetIdx === 2) {
+          renderSpecialAuditSheet(targetSheetId, rawData);
+        } else if (sheetIdx === 3) {
+          renderBudgetSheet(targetSheetId, rawData);
+        } else if (sheetIdx === 4) {
+          renderMultiyearSheet(targetSheetId, rawData);
+        } else if (sheetIdx === 5) {
+          renderOverviewSheet(targetSheetId, rawData);
+        }
+      });
+    }
+
+    // Parse Standard Sheets (Sheet 1 & 2)
+    function parseSheetRows(rows) {
       const items = [];
       let currentEntity = null;
       let currentMainAct = null;
-      const is5Col = (sheetIdx === 2);
 
       rows.forEach((row) => {
         if (!row || row.every(cell => cell === "" || cell === null)) return;
@@ -578,23 +644,11 @@
 
         const cellB = String(row[1] || '').trim();
         const cellC = String(row[2] || '').trim();
-        let cellD = "";
-        let cellE = "";
-        let cellF = "";
+        const cellD = String(row[3] || '').trim();
+        const cellE = String(row[4] || '').trim();
+        const cellF = String(row[5] || extractAuditorVal(row)).trim();
 
-        if (is5Col) {
-          // 5-Column Sheet (Sheet 3: ตรวจสอบพิเศษ)
-          cellD = "";
-          cellE = String(row[3] || '').trim();
-          cellF = String(row[4] || extractAuditorVal(row)).trim();
-        } else {
-          // 6-Column Sheet (Sheet 1 & 2: สาย 1, 2, 3)
-          cellD = String(row[3] || '').trim();
-          cellE = String(row[4] || '').trim();
-          cellF = String(row[5] || extractAuditorVal(row)).trim();
-        }
-
-        // Check if group banner row
+        // Banner row
         const isBannerRow = (cellA.includes('งาน') || cellA.includes('สาย') || cellB.includes('งาน') || cellB.includes('สาย')) && cellC === "" && cellD === "";
 
         if (isBannerRow) {
@@ -603,14 +657,14 @@
           return;
         }
 
-        // Check if total summary row
+        // Summary row
         if (cellA.includes('รวม') || cellB.includes('รวม')) {
           if (currentEntity) { items.push(currentEntity); currentEntity = null; currentMainAct = null; }
           items.push({ type: 'summary', title: cellA || cellB, manDay: cellE, auditors: cellF });
           return;
         }
 
-        // Check if new entity starts
+        // New entity
         const isNewEntity = (cellA !== "" || cellB !== "") && (!currentEntity || cellA !== "" || (cellB !== "" && cellB !== currentEntity.name));
 
         if (isNewEntity) {
@@ -658,29 +712,27 @@
       return items;
     }
 
+    // Render Standard Sheets (Sheet 1 & 2)
     function renderStandardSheet(sheetId, rows, sheetIdx) {
       const tbody = document.querySelector(`#table-${sheetId} tbody`);
       if (!tbody) return;
       tbody.innerHTML = '';
 
       let totalManDay = 0;
-      const is5Col = (sheetIdx === 2);
-      const items = parseSheetRows(rows, sheetIdx);
+      const items = parseSheetRows(rows);
       let entityIndex = 0;
 
       items.forEach((item) => {
         if (item.type === 'banner') {
           const tr = document.createElement('tr');
           tr.className = 'group-header';
-          const colspan = is5Col ? 5 : 6;
-          tr.innerHTML = `<td colspan="${colspan}" contenteditable="true">${item.title}</td>`;
+          tr.innerHTML = `<td colspan="6" contenteditable="true">${item.title}</td>`;
           tbody.appendChild(tr);
         } else if (item.type === 'summary') {
           const tr = document.createElement('tr');
           tr.className = 'summary-row';
-          const titleColspan = is5Col ? 3 : 4;
           tr.innerHTML = `
-            <td colspan="${titleColspan}" class="text-center font-bold" contenteditable="true">${item.title}</td>
+            <td colspan="4" class="text-center font-bold" contenteditable="true">${item.title}</td>
             <td class="text-center font-bold" contenteditable="true">${formatNumber(item.manDay)}</td>
             <td class="text-center font-bold" contenteditable="true">${item.auditors}</td>
           `;
@@ -697,28 +749,20 @@
           if (item.mainActivities.length === 0) {
             const tr = document.createElement('tr');
             tr.className = 'entity-last-row';
-            let html = `
+            tr.innerHTML = `
               <td class="text-center font-bold ${bgClass}" contenteditable="true">${item.num}</td>
               <td class="font-bold ${bgClass}" contenteditable="true">${item.name}</td>
               <td class="${bgClass}" contenteditable="true"></td>
-            `;
-            if (!is5Col) {
-              html += `<td class="${bgClass}" contenteditable="true"></td>`;
-            }
-            html += `
+              <td class="${bgClass}" contenteditable="true"></td>
               <td class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>
               <td class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>
             `;
-            tr.innerHTML = html;
             tbody.appendChild(tr);
           } else {
             item.mainActivities.forEach((ma, maIndex) => {
               const isLastRowOfEntity = (maIndex === totalEntitySubRows - 1);
-
               const tr = document.createElement('tr');
-              if (isLastRowOfEntity) {
-                tr.className = 'entity-last-row';
-              }
+              if (isLastRowOfEntity) tr.className = 'entity-last-row';
 
               let html = '';
               if (maIndex === 0) {
@@ -727,12 +771,8 @@
               }
 
               html += `<td class="${bgClass}" contenteditable="true">${ma.name}</td>`;
-
-              if (!is5Col) {
-                // Combine Column D sub-activities into a single line in a single cell
-                const combinedSub = ma.subActivities.filter(s => s && s.trim()).join(' ');
-                html += `<td class="${bgClass}" contenteditable="true">${combinedSub}</td>`;
-              }
+              const combinedSub = ma.subActivities.filter(s => s && s.trim()).join(' ');
+              html += `<td class="${bgClass}" contenteditable="true">${combinedSub}</td>`;
 
               if (maIndex === 0) {
                 html += `<td rowspan="${totalEntitySubRows}" class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>`;
@@ -746,17 +786,157 @@
         }
       });
 
-      // Update summary cards
       if (sheetIdx === 0) {
         document.getElementById('s1-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
         document.getElementById('s1-total').innerText = `${formatNumber(totalManDay + 105 + 525 + 75 + 105)} Man-Day (เฉลี่ย ${((totalManDay + 810)/7).toFixed(1)} วัน/คน)`;
       } else if (sheetIdx === 1) {
         document.getElementById('s2-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
         document.getElementById('s2-total').innerText = `${formatNumber(totalManDay + 60 + 300 + 40 + 60)} Man-Day (เฉลี่ย ${((totalManDay + 460)/4).toFixed(1)} วัน/คน)`;
-      } else if (sheetIdx === 2) {
-        document.getElementById('s3-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
-        document.getElementById('s3-total').innerText = `${formatNumber(totalManDay)} Man-Day`;
       }
+    }
+
+    function renderSpecialAuditSheet(sheetId, rows) {
+      const tbody = document.querySelector(`#table-${sheetId} tbody`);
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let totalManDay = 0;
+      let entityIndex = 0;
+      const items = [];
+      let currentEntity = null;
+
+      rows.forEach((row) => {
+        if (!row || row.every(cell => cell === "" || cell === null)) return;
+
+        const cellA = String(row[0] || '').trim();
+        if (cellA === 'ลำดับ') return;
+
+        const cellB = String(row[1] || '').trim();
+        const cellC = String(row[2] || '').trim();
+        const cellD = String(row[3] || '').trim();
+        const cellE = String(row[4] || '').trim();
+        const cellF = String(row[5] || '').trim();
+
+        // Group Header Banner
+        const isBannerRow = (cellA.includes('งาน') || cellA.includes('สาย') || cellB.includes('งาน') || cellB.includes('สาย')) && cellC === "" && cellD === "";
+
+        if (isBannerRow) {
+          if (currentEntity) { items.push(currentEntity); currentEntity = null; }
+          items.push({ type: 'banner', title: cellA || cellB });
+          return;
+        }
+
+        // Summary Row
+        if (cellA.includes('รวม') || cellB.includes('รวม')) {
+          if (currentEntity) { items.push(currentEntity); currentEntity = null; }
+          items.push({ type: 'summary', title: cellA || cellB, manDay: cellD || cellE, auditors: cellE || cellF });
+          return;
+        }
+
+        // New Entity Check
+        const isNewEntity = (cellA !== "" || cellB !== "") && (!currentEntity || cellA !== "" || (cellB !== "" && cellB !== currentEntity.name));
+
+        if (isNewEntity) {
+          if (currentEntity) { items.push(currentEntity); }
+          currentEntity = {
+            type: 'entity',
+            num: cellA,
+            name: cellB,
+            team: cellF || "",
+            manDay: cellD || cellE || "",
+            auditors: cellE || extractAuditorVal(row) || "",
+            activities: []
+          };
+        }
+
+        if (!currentEntity) {
+          currentEntity = {
+            type: 'entity',
+            num: cellA,
+            name: cellB,
+            team: cellF || "",
+            manDay: cellD || cellE || "",
+            auditors: cellE || extractAuditorVal(row) || "",
+            activities: []
+          };
+        }
+
+        if (cellF && !currentEntity.team) currentEntity.team = cellF;
+        if (cellD && !currentEntity.manDay) currentEntity.manDay = cellD;
+        if (cellE && !currentEntity.auditors) currentEntity.auditors = cellE;
+
+        if (cellC !== "") {
+          currentEntity.activities.push(cellC);
+        }
+      });
+
+      if (currentEntity) { items.push(currentEntity); }
+
+      items.forEach((item) => {
+        if (item.type === 'banner') {
+          const tr = document.createElement('tr');
+          tr.className = 'group-header';
+          tr.innerHTML = `<td colspan="6" contenteditable="true">${item.title}</td>`;
+          tbody.appendChild(tr);
+        } else if (item.type === 'summary') {
+          const tr = document.createElement('tr');
+          tr.className = 'summary-row';
+          tr.innerHTML = `
+            <td colspan="4" class="text-center font-bold" contenteditable="true">${item.title}</td>
+            <td class="text-center font-bold" contenteditable="true">${formatNumber(item.manDay)}</td>
+            <td class="text-center font-bold" contenteditable="true">${item.auditors}</td>
+          `;
+          tbody.appendChild(tr);
+        } else if (item.type === 'entity') {
+          const manDayNum = parseFloat(String(item.manDay).replace(/,/g, '')) || 0;
+          totalManDay += manDayNum;
+
+          const bgClass = (entityIndex % 2 === 0) ? 'bg-entity-even' : 'bg-entity-odd';
+          entityIndex++;
+
+          const actCount = Math.max(1, item.activities.length);
+
+          if (item.activities.length === 0) {
+            const tr = document.createElement('tr');
+            tr.className = 'entity-last-row';
+            tr.innerHTML = `
+              <td class="text-center font-bold ${bgClass}" contenteditable="true">${item.num}</td>
+              <td class="font-bold ${bgClass}" contenteditable="true">${item.name}</td>
+              <td class="${bgClass}" contenteditable="true"></td>
+              <td class="text-center ${bgClass}" contenteditable="true">${item.team}</td>
+              <td class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>
+              <td class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>
+            `;
+            tbody.appendChild(tr);
+          } else {
+            item.activities.forEach((act, actIdx) => {
+              const isLast = (actIdx === actCount - 1);
+              const tr = document.createElement('tr');
+              if (isLast) tr.className = 'entity-last-row';
+
+              let html = '';
+              if (actIdx === 0) {
+                html += `<td rowspan="${actCount}" class="text-center font-bold ${bgClass}" contenteditable="true">${item.num}</td>`;
+                html += `<td rowspan="${actCount}" class="font-bold ${bgClass}" contenteditable="true">${item.name}</td>`;
+              }
+
+              html += `<td class="${bgClass}" contenteditable="true">${act}</td>`;
+
+              if (actIdx === 0) {
+                html += `<td rowspan="${actCount}" class="text-center ${bgClass}" contenteditable="true">${item.team}</td>`;
+                html += `<td rowspan="${actCount}" class="text-center font-bold ${bgClass}" contenteditable="true">${formatNumber(item.manDay)}</td>`;
+                html += `<td rowspan="${actCount}" class="text-center ${bgClass}" contenteditable="true">${item.auditors}</td>`;
+              }
+
+              tr.innerHTML = html;
+              tbody.appendChild(tr);
+            });
+          }
+        }
+      });
+
+      document.getElementById('s3-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
+      document.getElementById('s3-total').innerText = `${formatNumber(totalManDay)} Man-Day`;
     }
 
     function renderBudgetSheet(sheetId, rows) {
@@ -775,12 +955,10 @@
         const cellF = String(row[5] || '').trim();
         const cellG = String(row[6] || extractAuditorVal(row)).trim();
 
-        // Skip Table Header Row ("ลำดับ", "โครงการประจำปี...")
         if (cellA === 'ลำดับ' || cellB.includes('โครงการประจำปี') || cellB.includes('โครงการ / ผลผลิต')) {
           return;
         }
 
-        // Banner header row (e.g. "แผนงานพื้นฐาน...", "แผนงานยุทธศาสตร์...")
         const isHeaderBanner = (cellA.includes('แผนงาน') || cellB.includes('แผนงาน') || cellA.includes('ยุทธศาสตร์') || cellB.includes('ยุทธศาสตร์') || cellA.includes('ผลผลิต') || cellB.includes('ผลผลิต')) && (cellD === "" || cellD === null);
 
         if (isHeaderBanner) {
@@ -796,7 +974,6 @@
           return;
         }
 
-        // Summary row
         if (cellA.includes('รวม') || cellB.includes('รวม')) {
           const tr = document.createElement('tr');
           tr.className = 'summary-row';
@@ -811,7 +988,6 @@
           return;
         }
 
-        // Data Row
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="text-center" contenteditable="true">${cellA}</td>
@@ -842,12 +1018,10 @@
         const cellF = String(row[5] || '').trim();
         const cellG = String(row[6] || extractAuditorVal(row)).trim();
 
-        // Skip Table Header Row
         if (cellA === 'ลำดับ' || cellB.includes('ชื่อโครงการ Multiyear')) {
           return;
         }
 
-        // Banner row
         const isBannerRow = (cellA.includes('การติดตาม') || cellB.includes('การติดตาม') || cellA.includes('โครงการ') || cellB.includes('โครงการ')) && cellD === "";
 
         if (isBannerRow) {
@@ -859,7 +1033,6 @@
           return;
         }
 
-        // Summary row
         if (cellA.includes('รวม') || cellB.includes('รวม')) {
           const tr = document.createElement('tr');
           tr.className = 'summary-row';
@@ -874,7 +1047,6 @@
           return;
         }
 
-        // Data Row
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="text-center" contenteditable="true">${cellA}</td>
@@ -889,7 +1061,60 @@
       });
     }
 
-    // Add Live Recalculation Listener for User Edits
+    function renderOverviewSheet(sheetId, rows) {
+      const tbody = document.querySelector(`#table-${sheetId} tbody`);
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      rows.forEach((row) => {
+        if (!row || row.every(cell => cell === "" || cell === null)) return;
+
+        const cellA = String(row[0] || '').trim();
+        const cellB = String(row[1] || '').trim();
+        const cellC = String(row[2] || '').trim();
+        const cellD = String(row[3] || '').trim();
+        const cellE = String(row[4] || extractAuditorVal(row)).trim();
+
+        if (cellA === 'ลำดับ' || cellB.includes('ภารกิจ')) {
+          return;
+        }
+
+        const isBannerRow = (cellA.includes('แผนงาน') || cellB.includes('แผนงาน') || cellA.includes('กลุ่ม') || cellB.includes('กลุ่ม')) && cellC === "";
+
+        if (isBannerRow) {
+          const tr = document.createElement('tr');
+          tr.className = 'group-header';
+          const bannerText = cellA ? (cellB ? `${cellA} ${cellB}` : cellA) : cellB;
+          tr.innerHTML = `<td colspan="5" contenteditable="true">${bannerText}</td>`;
+          tbody.appendChild(tr);
+          return;
+        }
+
+        if (cellA.includes('รวม') || cellB.includes('รวม')) {
+          const tr = document.createElement('tr');
+          tr.className = 'summary-row';
+          tr.innerHTML = `
+            <td colspan="3" class="text-center font-bold" contenteditable="true">${cellA || cellB}</td>
+            <td class="text-center font-bold" contenteditable="true">${formatNumber(cellD)}</td>
+            <td class="text-center font-bold" contenteditable="true">${cellE}</td>
+          `;
+          tbody.appendChild(tr);
+          return;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-center" contenteditable="true">${cellA}</td>
+          <td contenteditable="true">${cellB}</td>
+          <td contenteditable="true">${cellC}</td>
+          <td class="text-center font-bold" contenteditable="true">${formatNumber(cellD)}</td>
+          <td class="text-center" contenteditable="true">${cellE}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Live Recalculation Listener
     document.addEventListener('input', function(e) {
       if (e.target && e.target.tagName === 'TD' && e.target.closest('.audit-table')) {
         recalculateTotalsFromTable();
@@ -925,6 +1150,11 @@
         document.getElementById('s2-total').innerText = `${formatNumber(s2Total + 60 + 300 + 40 + 60)} Man-Day (เฉลี่ย ${((s2Total + 460)/4).toFixed(1)} วัน/คน)`;
       }
     }
+
+    // Auto-fetch on Page Load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchGoogleSheet();
+    });
   </script>
 </body>
 </html>
