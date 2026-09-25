@@ -943,6 +943,8 @@
       const container = document.getElementById(containerId);
       if (!container) return;
 
+      const subtotalEl = container.querySelector('.subtotal-line');
+
       const div = document.createElement('div');
       div.className = 'summary-item';
       div.innerHTML = `
@@ -953,7 +955,12 @@
           <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
         </div>
       `;
-      container.appendChild(div);
+
+      if (subtotalEl) {
+        container.insertBefore(div, subtotalEl);
+      } else {
+        container.appendChild(div);
+      }
 
       const parentCard = container.closest('.summary-card');
       if (parentCard) recalculateCardTotals(parentCard);
@@ -965,24 +972,53 @@
     // Recalculate summary card totals dynamically
     function recalculateCardTotals(card) {
       if (!card) return;
-      let subtotal = 0;
-      card.querySelectorAll('.summary-val').forEach(el => {
-        let val = parseFloat((el.innerText || '').replace(/,/g, ''));
-        if (!isNaN(val)) subtotal += val;
+      let preTotal = 0;
+      let postTotal = 0;
+      let reachedSubtotal = false;
+
+      const items = card.querySelectorAll('.summary-item');
+      items.forEach(item => {
+        if (item.classList.contains('subtotal-line')) {
+          reachedSubtotal = true;
+          return;
+        }
+
+        const valEl = item.querySelector('.summary-val');
+        if (valEl) {
+          let val = parseFloat((valEl.innerText || '').replace(/,/g, ''));
+          if (!isNaN(val)) {
+            if (!reachedSubtotal) {
+              preTotal += val;
+            } else {
+              postTotal += val;
+            }
+          }
+        }
       });
 
       const subtotalEl = card.querySelector('.summary-subtotal');
       if (subtotalEl) {
-        subtotalEl.innerText = formatNumber(subtotal);
+        subtotalEl.innerText = formatNumber(preTotal);
       }
 
+      const grandTotal = preTotal + postTotal;
       const totalSpan = card.querySelector('.summary-total span:last-child');
       if (totalSpan) {
-        const isS1 = card.id === 'summary-sheet1';
-        const isS2 = card.id === 'summary-sheet2';
-        const people = isS1 ? 7 : (isS2 ? 4 : 1);
-        const avg = people > 0 ? (subtotal / people).toFixed(1) : 0;
-        totalSpan.innerText = `${formatNumber(subtotal)} Man-Day (เฉลี่ย ${avg} วัน/คน)`;
+        let people = 0;
+        if (card.id === 'summary-sheet1') people = 7;
+        else if (card.id === 'summary-sheet2') people = 4;
+        else {
+          const headerText = card.innerText || '';
+          const match = headerText.match(/(\d+)\s*คน/);
+          if (match) people = parseInt(match[1]);
+        }
+
+        if (people > 0) {
+          const avg = (grandTotal / people).toFixed(1);
+          totalSpan.innerText = `${formatNumber(grandTotal)} Man-Day (เฉลี่ย ${avg} วัน/คน)`;
+        } else {
+          totalSpan.innerText = `${formatNumber(grandTotal)} Man-Day`;
+        }
       }
     }
 
@@ -1813,6 +1849,10 @@
 
     // Auto-fetch on Page Load
     window.addEventListener('DOMContentLoaded', () => {
+      ['summary-sheet1', 'summary-sheet2', 'summary-sheet3'].forEach(id => {
+        const card = document.getElementById(id);
+        if (card) recalculateCardTotals(card);
+      });
       fetchGoogleSheet();
     });
   </script>
