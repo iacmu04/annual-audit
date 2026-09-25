@@ -119,6 +119,7 @@
     .text-right { text-align: right !important; }
     .font-bold { font-weight: 700 !important; }
 
+    /* Summary Card Styling (Orange/Peach Theme with 9-line support) */
     .summary-card {
       background-color: #ffffff;
       border: 1px solid #fdba74;
@@ -134,8 +135,8 @@
       font-size: 11pt;
       margin-bottom: 14px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
       border-bottom: 1px solid #ffedd5;
       padding-bottom: 10px;
     }
@@ -150,14 +151,28 @@
     .summary-item {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
+      align-items: center;
+      padding: 7px 0;
       border-bottom: 1px dashed #fed7aa;
       font-size: 9.5pt;
       color: #334155;
+      transition: background-color 0.15s ease;
     }
 
-    .summary-item:last-of-type {
-      border-bottom: none;
+    .summary-item:hover {
+      background-color: #fffaf5;
+    }
+
+    .summary-item.subtotal-line {
+      border-top: 1.5px solid #1e293b;
+      border-bottom: 2px solid #1e293b;
+      font-weight: 700;
+      color: #0f172a;
+      background-color: #fefce8;
+      padding: 9px 8px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+      border-radius: 4px;
     }
 
     .bullet-dot {
@@ -166,16 +181,18 @@
       margin-right: 6px;
     }
 
-    /* Soft Peach Total Highlight Box */
+    /* Soft Peach Total Highlight Box (Line 9 - Grand Total) */
     .summary-total {
       background-color: #ffedd5;
+      border: 1.5px solid #fdba74;
       border-radius: 10px;
       padding: 12px 18px;
-      margin-top: 14px;
+      margin-top: 12px;
       font-weight: 700;
       color: #3730a3;
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 10pt;
     }
 
@@ -195,15 +212,16 @@
     }
 
     .tab-btn {
-      padding: 8px 16px;
+      padding: 8px 14px;
       border-radius: 6px;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13.5px;
       cursor: pointer;
       transition: all 0.2s ease;
       border: 1px solid #cbd5e1;
       background-color: #ffffff;
       color: #475569;
+      white-space: nowrap;
     }
 
     .tab-btn:hover {
@@ -218,27 +236,19 @@
       box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
     }
 
-    /* Action buttons in table */
+    /* Action buttons in table & summary rows */
     .row-action-btn {
-      opacity: 0.4;
+      opacity: 0.35;
       transition: all 0.2s ease;
       cursor: pointer;
     }
-    tr:hover .row-action-btn {
+    tr:hover .row-action-btn,
+    .summary-item:hover .row-action-btn {
       opacity: 1;
     }
     .row-action-btn:hover {
-      transform: scale(1.15);
+      transform: scale(1.2);
       color: #e11d48 !important;
-    }
-
-    /* Table Toolbar */
-    .table-toolbar {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: -10px;
-      margin-bottom: 15px;
     }
 
     /* Modal dialog */
@@ -347,7 +357,7 @@
         <button onclick="closeGasModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
       <p class="text-xs text-slate-600 mb-3">
-        เนื่องจาก Google Sheets มีระบบรักษาความปลอดภัย การเขียนข้อมูลกลับจำเป็นต้องเชื่อมต่อผ่าน <b>Google Apps Script Web App</b> (ตั้งค่าครั้งเดียว):
+        การบันทึกข้อมูลกลับไปยัง Google Sheets จำเป็นต้องเชื่อมต่อผ่าน <b>Google Apps Script Web App</b>:
       </p>
       <ol class="text-xs text-slate-500 list-decimal pl-5 space-y-1 mb-4">
         <li>เปิด Google Sheet ของคุณ ไปที่เมนู <b>ส่วนขยาย (Extensions) &gt; Apps Script</b></li>
@@ -369,16 +379,17 @@
     </div>
   </div>
 
-  <!-- Tab Buttons Navigation -->
   <div class="controls-container no-print" style="margin-top: -10px;">
     <div class="flex flex-wrap gap-2">
       <button class="tab-btn active" onclick="switchTab('all')">📄 ดูทั้งหมด (โหมดพิมพ์)</button>
-      <button class="tab-btn" onclick="switchTab('sheet1')">1. สาย 1 & 3</button>
-      <button class="tab-btn" onclick="switchTab('sheet2')">2. สาย 2</button>
-      <button class="tab-btn" onclick="switchTab('sheet3')">3. ตรวจสอบพิเศษ</button>
-      <button class="tab-btn" onclick="switchTab('sheet4')">4. งบเงินแผ่นดิน</button>
-      <button class="tab-btn" onclick="switchTab('sheet5')">5. Multiyear</button>
-      <button class="tab-btn" onclick="switchTab('sheet6')">6. สรุปภาพรวม</button>
+      <button class="tab-btn" id="tab-btn-sheet1" onclick="switchTab('sheet1')">1. สาย 1 & 3</button>
+      <button class="tab-btn" id="tab-btn-sheet2" onclick="switchTab('sheet2')">2. สาย 2</button>
+      <button class="tab-btn" id="tab-btn-sheet3" onclick="switchTab('sheet3')">3. ตรวจสอบพิเศษ</button>
+      <button class="tab-btn" id="tab-btn-sheet4" onclick="switchTab('sheet4')">4. งบเงินแผ่นดิน</button>
+      <button class="tab-btn" id="tab-btn-sheet5" onclick="switchTab('sheet5')">5. แม่โขงล้านช้าง</button>
+      <button class="tab-btn" id="tab-btn-sheet6" onclick="switchTab('sheet6')">6. Multiyear</button>
+      <button class="tab-btn" id="tab-btn-sheet7" onclick="switchTab('sheet7')">7. แผนงานเพิ่มเติม</button>
+      <button class="tab-btn" id="tab-btn-sheet8" onclick="switchTab('sheet8')">8. สรุปภาพรวม</button>
     </div>
   </div>
 
@@ -387,7 +398,7 @@
     <!-- SHEET 1 CONTAINER -->
     <div id="sheet1" class="paper-page tab-content">
       <div class="flex justify-between items-center mb-1">
-        <h2 class="text-xl font-bold text-indigo-900">1. แผนงานตรวจสอบสาย 1 และ สาย 3</h2>
+        <h2 id="title-sheet1" class="text-xl font-bold text-indigo-900">1. แผนงานตรวจสอบสาย 1 และ สาย 3</h2>
         <div class="no-print">
           <button onclick="addNewRow('sheet1')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
             ➕ เพิ่มแถวใหม่
@@ -409,35 +420,96 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Dynamic Editable Content -->
+          <!-- Dynamic Content -->
         </tbody>
       </table>
 
+      <!-- 9-Line Summary Card for Sheet 1 (7 people) -->
       <div class="summary-card" id="summary-sheet1">
-        <h4 contenteditable="true">📊 สรุปการจัดสรร Man-Day งานตรวจสอบสาย 1 และ 3 (รวมบุคลากร 7 คน)</h4>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day งานตรวจสอบประจำปี</span>
-          <span class="font-bold" id="s1-m1" contenteditable="true">0 Man-Day</span>
+        <h4>
+          <span contenteditable="true">📊 สรุปการจัดสรร Man-Day งานตรวจสอบสาย 1 และ 3 (รวมบุคลากร 7 คน)</span>
+          <button onclick="addSummaryItem('summary-items-s1')" class="no-print text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200">
+            ➕ เพิ่มรายการสรุป
+          </button>
+        </h4>
+        <div id="summary-items-s1">
+          <!-- Line 1 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีรวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" id="s1-m1" contenteditable="true">0</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 2 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีโครงการเงินแผ่นดิน 2570 รวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">105</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 3 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีโครงการแม่โขงล้านช้าง รวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">72</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 4 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีโครงการ Multiyear รวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">36</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 5 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งบการเงินประจำเดือนรวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">525</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 6 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day ประชุม และงานอื่น ๆ รวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">92</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 7 (Subtotal before training) -->
+          <div class="summary-item subtotal-line">
+            <span contenteditable="true">Man Day รวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-subtotal" id="s1-subtotal" contenteditable="true">830</span>
+              <span class="text-xs text-gray-600">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 8 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day อบรม 15 วัน รวม 7 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" id="s1-training" contenteditable="true">105</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
         </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day งานตรวจสอบประจำปีเงินแผ่นดิน 2570 และติดตาม Multiyear รวม 7 คน</span>
-          <span class="font-bold" contenteditable="true">105 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day ตรวจสอบงบการเงินประจำเดือน รวม 7 คน</span>
-          <span class="font-bold" contenteditable="true">525 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day การประชุม และงานอื่น ๆ รวม 7 คน</span>
-          <span class="font-bold" contenteditable="true">75 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day การฝึกอบรม (15 วัน / คน) รวม 7 คน</span>
-          <span class="font-bold" contenteditable="true">105 Man-Day</span>
-        </div>
+        <!-- Line 9 (Grand Total) -->
         <div class="summary-total">
-          <span contenteditable="true">รวม Man-Day ทั้งสิ้น (รวมการอบรม) สำหรับ 7 คน</span>
-          <span id="s1-total" contenteditable="true">0 Man-Day</span>
+          <span contenteditable="true">Man Day (รวมอบรม) รวม 7 คน</span>
+          <span id="s1-total" contenteditable="true">935 Man-Day (เฉลี่ย 133.6 วัน/คน)</span>
         </div>
       </div>
     </div>
@@ -445,7 +517,7 @@
     <!-- SHEET 2 CONTAINER -->
     <div id="sheet2" class="paper-page tab-content">
       <div class="flex justify-between items-center mb-1">
-        <h2 class="text-xl font-bold text-indigo-900">2. แผนงานตรวจสอบสาย 2</h2>
+        <h2 id="title-sheet2" class="text-xl font-bold text-indigo-900">2. แผนงานตรวจสอบสาย 2</h2>
         <div class="no-print">
           <button onclick="addNewRow('sheet2')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
             ➕ เพิ่มแถวใหม่
@@ -467,43 +539,104 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Dynamic Editable Content -->
+          <!-- Dynamic Content -->
         </tbody>
       </table>
 
+      <!-- 9-Line Summary Card for Sheet 2 (4 people - Exactly matching attached image) -->
       <div class="summary-card" id="summary-sheet2">
-        <h4 contenteditable="true">📊 สรุปการจัดสรร Man-Day งานตรวจสอบสาย 2 (รวมบุคลากร 4 คน)</h4>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day งานตรวจสอบประจำปี</span>
-          <span class="font-bold" id="s2-m1" contenteditable="true">0 Man-Day</span>
+        <h4>
+          <span contenteditable="true">📊 สรุปการจัดสรร Man-Day งานตรวจสอบสาย 2 (รวมบุคลากร 4 คน)</span>
+          <button onclick="addSummaryItem('summary-items-s2')" class="no-print text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200">
+            ➕ เพิ่มรายการสรุป
+          </button>
+        </h4>
+        <div id="summary-items-s2">
+          <!-- Line 1 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีรวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" id="s2-m1" contenteditable="true">260</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 2 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีโครงการเงินแผ่นดิน 2570 รวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">72</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 3 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีโครงการแม่โขงล้านช้าง รวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">72</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 4 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบประจำปีโครงการ Multiyear รวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">36</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 5 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งบการเงินประจำเดือนรวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">300</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 6 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day ประชุม และงานอื่น ๆ รวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">92</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 7 (Subtotal) -->
+          <div class="summary-item subtotal-line">
+            <span contenteditable="true">Man Day รวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-subtotal" id="s2-subtotal" contenteditable="true">832</span>
+              <span class="text-xs text-gray-600">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <!-- Line 8 -->
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day อบรม 15 วัน รวม 4 คน</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" id="s2-training" contenteditable="true">60</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
         </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day งานตรวจสอบประจำปีเงินแผ่นดิน 2570 และติดตาม Multiyear รวม 4 คน</span>
-          <span class="font-bold" contenteditable="true">60 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day ตรวจสอบงบการเงินประจำเดือน รวม 4 คน</span>
-          <span class="font-bold" contenteditable="true">300 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day การประชุม และงานอื่น ๆ รวม 4 คน</span>
-          <span class="font-bold" contenteditable="true">40 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day การฝึกอบรม (15 วัน / คน) รวม 4 คน</span>
-          <span class="font-bold" contenteditable="true">60 Man-Day</span>
-        </div>
+        <!-- Line 9 (Grand Total) -->
         <div class="summary-total">
-          <span contenteditable="true">รวม Man-Day ทั้งสิ้น (รวมการอบรม) สำหรับ 4 คน</span>
-          <span id="s2-total" contenteditable="true">0 Man-Day</span>
+          <span contenteditable="true">Man Day (รวมอบรม) รวม 4 คน</span>
+          <span id="s2-total" contenteditable="true">892 Man-Day (เฉลี่ย 223.0 วัน/คน)</span>
         </div>
       </div>
     </div>
 
-    <!-- SHEET 3 CONTAINER (ตรวจสอบพิเศษ พร้อมคอลัมน์ ทีมรับผิดชอบ) -->
+    <!-- SHEET 3 CONTAINER -->
     <div id="sheet3" class="paper-page tab-content">
       <div class="flex justify-between items-center mb-1">
-        <h2 class="text-xl font-bold text-indigo-900">3. แผนงานตรวจสอบพิเศษ</h2>
+        <h2 id="title-sheet3" class="text-xl font-bold text-indigo-900">3. แผนงานตรวจสอบพิเศษ</h2>
         <div class="no-print">
           <button onclick="addNewRow('sheet3')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
             ➕ เพิ่มแถวใหม่
@@ -525,30 +658,62 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Dynamic Editable Content -->
+          <!-- Dynamic Content -->
         </tbody>
       </table>
 
+      <!-- 9-Line Summary Card for Sheet 3 -->
       <div class="summary-card" id="summary-sheet3">
-        <h4 contenteditable="true">📊 สรุปการจัดสรร Man-Day งานตรวจสอบพิเศษ</h4>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day งานตรวจสอบพิเศษ</span>
-          <span class="font-bold" id="s3-m1" contenteditable="true">0 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day งานสอบทาน/ให้คำปรึกษา</span>
-          <span class="font-bold" contenteditable="true">0 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day การประชุม และงานอื่น ๆ</span>
-          <span class="font-bold" contenteditable="true">0 Man-Day</span>
-        </div>
-        <div class="summary-item">
-          <span contenteditable="true"><span class="bullet-dot">•</span>Man-Day การฝึกอบรม</span>
-          <span class="font-bold" contenteditable="true">0 Man-Day</span>
+        <h4>
+          <span contenteditable="true">📊 สรุปการจัดสรร Man-Day งานตรวจสอบพิเศษ</span>
+          <button onclick="addSummaryItem('summary-items-s3')" class="no-print text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200">
+            ➕ เพิ่มรายการสรุป
+          </button>
+        </h4>
+        <div id="summary-items-s3">
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานตรวจสอบพิเศษ</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" id="s3-m1" contenteditable="true">0</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day งานสอบทาน/ให้คำปรึกษา</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">0</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day การประชุม และงานอื่น ๆ</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">0</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <div class="summary-item subtotal-line">
+            <span contenteditable="true">Man Day รวมตรวจสอบพิเศษ</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-subtotal" id="s3-subtotal" contenteditable="true">0</span>
+              <span class="text-xs text-gray-600">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span contenteditable="true"><span class="bullet-dot">•</span>Man Day การฝึกอบรม</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold summary-val" contenteditable="true">0</span>
+              <span class="text-xs text-gray-500">Man-Day</span>
+              <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+            </div>
+          </div>
         </div>
         <div class="summary-total">
-          <span contenteditable="true">รวม Man-Day ทั้งสิ้น</span>
+          <span contenteditable="true">รวม Man-Day ทั้งสิ้น (รวมการอบรม)</span>
           <span id="s3-total" contenteditable="true">0 Man-Day</span>
         </div>
       </div>
@@ -557,7 +722,7 @@
     <!-- SHEET 4 CONTAINER -->
     <div id="sheet4" class="paper-page tab-content">
       <div class="flex justify-between items-center mb-1">
-        <h2 class="text-xl font-bold text-indigo-900">4. โครงการงบประมาณเงินแผ่นดิน</h2>
+        <h2 id="title-sheet4" class="text-xl font-bold text-indigo-900">4. โครงการงบประมาณเงินแผ่นดิน</h2>
         <div class="no-print">
           <button onclick="addNewRow('sheet4')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
             ➕ เพิ่มแถวใหม่
@@ -580,15 +745,15 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Dynamic Editable Content -->
+          <!-- Dynamic Content -->
         </tbody>
       </table>
     </div>
 
-    <!-- SHEET 5 CONTAINER -->
+    <!-- SHEET 5 CONTAINER (โครงการแม่โขงล้านช้าง) -->
     <div id="sheet5" class="paper-page tab-content">
       <div class="flex justify-between items-center mb-1">
-        <h2 class="text-xl font-bold text-indigo-900">5. โครงการ Multiyear</h2>
+        <h2 id="title-sheet5" class="text-xl font-bold text-indigo-900">5. โครงการแม่โขงล้านช้าง</h2>
         <div class="no-print">
           <button onclick="addNewRow('sheet5')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
             ➕ เพิ่มแถวใหม่
@@ -598,6 +763,37 @@
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
       <table id="table-sheet5" class="audit-table">
+        <thead>
+          <tr>
+            <th style="width: 6%;">ลำดับ</th>
+            <th style="width: 30%;">ชื่อโครงการ / กิจกรรม</th>
+            <th style="width: 14%;">ระยะเวลา</th>
+            <th style="width: 15%;">วงเงิน (บาท)</th>
+            <th style="width: 13%;">ทีมผู้ตรวจ</th>
+            <th style="width: 9%;">Man-Day</th>
+            <th style="width: 9%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dynamic Content -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SHEET 6 CONTAINER (Multiyear) -->
+    <div id="sheet6" class="paper-page tab-content">
+      <div class="flex justify-between items-center mb-1">
+        <h2 id="title-sheet6" class="text-xl font-bold text-indigo-900">6. โครงการ Multiyear</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet6')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
+
+      <table id="table-sheet6" class="audit-table">
         <thead>
           <tr>
             <th style="width: 6%;">ลำดับ</th>
@@ -611,24 +807,55 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Dynamic Editable Content -->
+          <!-- Dynamic Content -->
         </tbody>
       </table>
     </div>
 
-    <!-- SHEET 6 CONTAINER -->
-    <div id="sheet6" class="paper-page tab-content">
+    <!-- SHEET 7 CONTAINER (แผนงานเพิ่มเติม) -->
+    <div id="sheet7" class="paper-page tab-content">
       <div class="flex justify-between items-center mb-1">
-        <h2 class="text-xl font-bold text-indigo-900">6. สรุปภาพรวมแผนการตรวจสอบ</h2>
+        <h2 id="title-sheet7" class="text-xl font-bold text-indigo-900">7. แผนงานตรวจสอบเพิ่มเติม</h2>
         <div class="no-print">
-          <button onclick="addNewRow('sheet6')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+          <button onclick="addNewRow('sheet7')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
             ➕ เพิ่มแถวใหม่
           </button>
         </div>
       </div>
       <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
 
-      <table id="table-sheet6" class="audit-table">
+      <table id="table-sheet7" class="audit-table">
+        <thead>
+          <tr>
+            <th style="width: 6%;">ลำดับ</th>
+            <th style="width: 30%;">โครงการ / กิจกรรม</th>
+            <th style="width: 14%;">ระยะเวลา</th>
+            <th style="width: 15%;">วงเงิน (บาท)</th>
+            <th style="width: 13%;">ทีมผู้ตรวจ</th>
+            <th style="width: 9%;">Man-Day</th>
+            <th style="width: 9%;">จำนวนผู้ตรวจสอบ</th>
+            <th class="no-print" style="width: 4%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dynamic Content -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SHEET 8 CONTAINER (สรุปภาพรวมแผนการตรวจสอบ) -->
+    <div id="sheet8" class="paper-page tab-content">
+      <div class="flex justify-between items-center mb-1">
+        <h2 id="title-sheet8" class="text-xl font-bold text-indigo-900">8. สรุปภาพรวมแผนการตรวจสอบ</h2>
+        <div class="no-print">
+          <button onclick="addNewRow('sheet8')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-1.5 px-3 rounded-md border border-indigo-200 flex items-center gap-1.5 transition">
+            ➕ เพิ่มแถวใหม่
+          </button>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">* คลิกที่ช่องในตารางเพื่อพิมพ์แก้ไขข้อมูลสด หรือคลิกปุ่มอัปเดตจาก Google Sheets</p>
+
+      <table id="table-sheet8" class="audit-table">
         <thead>
           <tr>
             <th style="width: 8%;">ลำดับ</th>
@@ -640,7 +867,7 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Dynamic Editable Content -->
+          <!-- Dynamic Content -->
         </tbody>
       </table>
     </div>
@@ -651,7 +878,7 @@
     // Google Sheets Direct XLSX Export URL
     const GSHEET_URL = "https://docs.google.com/spreadsheets/d/1jZaZoJmMUDOc5NfutDJQ5vdYBbrzr2ElLZK49jaEW6k/export?format=xlsx";
 
-    // Tab Switcher
+    // Tab Switcher for 8 Sheets + All
     function switchTab(tabId) {
       const tabs = document.querySelectorAll('.tab-btn');
       tabs.forEach(btn => btn.classList.remove('active'));
@@ -660,12 +887,14 @@
       
       if (tabId === 'all') {
         contents.forEach(content => content.style.display = 'block');
-        if (event && event.target) event.target.classList.add('active');
+        const activeBtn = document.querySelector(`button[onclick="switchTab('all')"]`);
+        if (activeBtn) activeBtn.classList.add('active');
       } else {
         contents.forEach(content => content.style.display = 'none');
         const target = document.getElementById(tabId);
         if (target) target.style.display = 'block';
-        if (event && event.target) event.target.classList.add('active');
+        const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+        if (activeBtn) activeBtn.classList.add('active');
       }
     }
 
@@ -690,7 +919,7 @@
       return '';
     }
 
-    // Delete a specific row
+    // Delete a specific row in any table
     function deleteRow(btn) {
       const tr = btn.closest('tr');
       if (tr) {
@@ -699,7 +928,65 @@
       }
     }
 
-    // Add a new editable row dynamically
+    // Delete a summary item line
+    function deleteSummaryItem(btn) {
+      const item = btn.closest('.summary-item');
+      if (item) {
+        const parentCard = item.closest('.summary-card');
+        item.remove();
+        if (parentCard) recalculateCardTotals(parentCard);
+      }
+    }
+
+    // Add a new custom summary item line
+    function addSummaryItem(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const div = document.createElement('div');
+      div.className = 'summary-item';
+      div.innerHTML = `
+        <span contenteditable="true"><span class="bullet-dot">•</span>รายการใหม่</span>
+        <div class="flex items-center gap-2">
+          <span class="font-bold summary-val" contenteditable="true">0</span>
+          <span class="text-xs text-gray-500">Man-Day</span>
+          <button onclick="deleteSummaryItem(this)" title="ลบบรรทัดนี้" class="row-action-btn no-print text-rose-500 font-bold ml-1 text-sm">&times;</button>
+        </div>
+      `;
+      container.appendChild(div);
+
+      const parentCard = container.closest('.summary-card');
+      if (parentCard) recalculateCardTotals(parentCard);
+
+      const spanText = div.querySelector('span[contenteditable="true"]');
+      if (spanText) spanText.focus();
+    }
+
+    // Recalculate summary card totals dynamically
+    function recalculateCardTotals(card) {
+      if (!card) return;
+      let subtotal = 0;
+      card.querySelectorAll('.summary-val').forEach(el => {
+        let val = parseFloat((el.innerText || '').replace(/,/g, ''));
+        if (!isNaN(val)) subtotal += val;
+      });
+
+      const subtotalEl = card.querySelector('.summary-subtotal');
+      if (subtotalEl) {
+        subtotalEl.innerText = formatNumber(subtotal);
+      }
+
+      const totalSpan = card.querySelector('.summary-total span:last-child');
+      if (totalSpan) {
+        const isS1 = card.id === 'summary-sheet1';
+        const isS2 = card.id === 'summary-sheet2';
+        const people = isS1 ? 7 : (isS2 ? 4 : 1);
+        const avg = people > 0 ? (subtotal / people).toFixed(1) : 0;
+        totalSpan.innerText = `${formatNumber(subtotal)} Man-Day (เฉลี่ย ${avg} วัน/คน)`;
+      }
+    }
+
+    // Add a new editable row dynamically to any sheet
     function addNewRow(sheetId) {
       const tbody = document.querySelector(`#table-${sheetId} tbody`);
       if (!tbody) return;
@@ -739,10 +1026,10 @@
           <td class="text-center" contenteditable="true">1</td>
           <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
         `;
-      } else if (sheetId === 'sheet5') {
+      } else if (sheetId === 'sheet5' || sheetId === 'sheet6' || sheetId === 'sheet7') {
         rowHtml = `
           <td class="text-center font-bold" contenteditable="true"></td>
-          <td contenteditable="true">ชื่อโครงการ Multiyear</td>
+          <td contenteditable="true">ชื่อโครงการใหม่</td>
           <td class="text-center" contenteditable="true">-</td>
           <td class="text-right font-bold" contenteditable="true">0</td>
           <td class="text-center" contenteditable="true">ทีมผู้ตรวจ</td>
@@ -750,7 +1037,7 @@
           <td class="text-center" contenteditable="true">1</td>
           <td class="text-center no-print"><button onclick="deleteRow(this)" title="ลบแถวนี้" class="row-action-btn text-rose-500 font-bold text-sm">&times;</button></td>
         `;
-      } else if (sheetId === 'sheet6') {
+      } else if (sheetId === 'sheet8') {
         rowHtml = `
           <td class="text-center font-bold" contenteditable="true"></td>
           <td contenteditable="true">ภารกิจใหม่</td>
@@ -764,7 +1051,6 @@
       tr.innerHTML = rowHtml;
       tbody.appendChild(tr);
 
-      // Focus first editable cell
       const firstCell = tr.querySelector('td[contenteditable="true"]');
       if (firstCell) firstCell.focus();
     }
@@ -800,7 +1086,6 @@
     var payload = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // บันทึกแต่ละชีท
     for (var sheetName in payload) {
       var sheet = ss.getSheetByName(sheetName);
       if (sheet) {
@@ -824,22 +1109,24 @@
       dummy.select();
       document.execCommand('copy');
       document.body.removeChild(dummy);
-      alert('คัดลอกโค้ด Google Apps Script เรียบร้อยแล้ว! สามารถนำไปวางใน Extensions > Apps Script ของ Google Sheet ได้ทันที');
+      const statusEl = document.getElementById('importStatus');
+      statusEl.innerHTML = '📋 คัดลอกโค้ด Google Apps Script แล้ว นำไปวางใน Extensions > Apps Script ได้ทันที';
     }
 
     async function sendDataToGas(url) {
       const statusEl = document.getElementById('importStatus');
       statusEl.innerHTML = '<span class="spinner"></span> กำลังบันทึกข้อมูลไปยัง Google Sheets...';
 
-      // Extract live table data
       const sheetsPayload = {};
       const sheetConfigs = [
         { id: 'table-sheet1', name: 'สาย 1 และ 3' },
         { id: 'table-sheet2', name: 'สาย 2' },
         { id: 'table-sheet3', name: 'งานตรวจสอบพิเศษ-ใช้' },
         { id: 'table-sheet4', name: 'เงินแผ่นดิน-ใช้' },
-        { id: 'table-sheet5', name: 'multiyear-ใช้' },
-        { id: 'table-sheet6', name: 'สรุปภาพรวม' }
+        { id: 'table-sheet5', name: 'แม่โขงล้านช้าง' },
+        { id: 'table-sheet6', name: 'multiyear-ใช้' },
+        { id: 'table-sheet7', name: 'แผนงานเพิ่มเติม' },
+        { id: 'table-sheet8', name: 'สรุปภาพรวม' }
       ];
 
       sheetConfigs.forEach(cfg => {
@@ -873,11 +1160,11 @@
 
     // Clear Table Data
     function clearAllData() {
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 1; i <= 8; i++) {
         const tbody = document.querySelector(`#table-sheet${i} tbody`);
         if (tbody) tbody.innerHTML = '';
       }
-      document.getElementById('importStatus').innerText = 'ล้างข้อมูลตารางเรียบร้อยแล้ว';
+      document.getElementById('importStatus').innerText = 'ล้างข้อมูลตารางทั้ง 8 ตารางเรียบร้อยแล้ว';
     }
 
     async function fetchGoogleSheet() {
@@ -893,7 +1180,7 @@
         statusEl.innerHTML = '✅ ซิงค์ข้อมูลล่าสุดจาก Google Sheets สำเร็จเรียบร้อย!';
       } catch (err) {
         console.warn("Direct fetch error (likely CORS):", err);
-        statusEl.innerHTML = '⚠️ ไม่สามารถดึงจาก Google Sheets ได้โดยตรง (ติด CORS) สามารถกดปุ่ม <b>"📂 นำเข้าจากไฟล์ Excel"</b> เพื่ออัปโหลดไฟล์ได้ทันที';
+        statusEl.innerHTML = '⚠️ ไม่สามารถดึงจาก Google Sheets ได้โดยตรง สามารถคลิกปุ่ม <b>"📂 นำเข้าจากไฟล์ Excel"</b> เพื่ออัปโหลดไฟล์ได้ทันที';
       }
     }
 
@@ -918,32 +1205,37 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // Process Workbook Sheets
+    // Process Workbook Sheets (Routing 7 sheets + 1 overview = 8 tables)
     function processWorkbook(dataArray) {
       const workbook = XLSX.read(dataArray, { type: 'array' });
 
       workbook.SheetNames.forEach((sheetName, sheetIdx) => {
-        if (sheetIdx >= 6) return;
+        if (sheetIdx >= 8) return;
         const worksheet = workbook.Sheets[sheetName];
         const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
         
         const targetSheetId = `sheet${sheetIdx + 1}`;
         
+        // Dynamically update Tab button and section title with actual Sheet Name from Excel
+        const tabBtn = document.getElementById(`tab-btn-sheet${sheetIdx + 1}`);
+        if (tabBtn && sheetName) tabBtn.innerText = `${sheetIdx + 1}. ${sheetName}`;
+        const headerTitle = document.getElementById(`title-sheet${sheetIdx + 1}`);
+        if (headerTitle && sheetName) headerTitle.innerText = `${sheetIdx + 1}. ${sheetName}`;
+
         if (sheetIdx === 0 || sheetIdx === 1) {
           renderStandardSheet(targetSheetId, rawData, sheetIdx);
         } else if (sheetIdx === 2) {
           renderSpecialAuditSheet(targetSheetId, rawData);
         } else if (sheetIdx === 3) {
           renderBudgetSheet(targetSheetId, rawData);
-        } else if (sheetIdx === 4) {
+        } else if (sheetIdx === 4 || sheetIdx === 5 || sheetIdx === 6) {
           renderMultiyearSheet(targetSheetId, rawData);
-        } else if (sheetIdx === 5) {
+        } else if (sheetIdx === 7) {
           renderOverviewSheet(targetSheetId, rawData);
         }
       });
     }
 
-    // Parse Standard Sheets (Sheet 1 & 2)
     function parseSheetRows(rows) {
       const items = [];
       let currentEntity = null;
@@ -1025,7 +1317,6 @@
       return items;
     }
 
-    // Render Standard Sheets (Sheet 1 & 2)
     function renderStandardSheet(sheetId, rows, sheetIdx) {
       const tbody = document.querySelector(`#table-${sheetId} tbody`);
       if (!tbody) return;
@@ -1102,12 +1393,15 @@
         }
       });
 
+      // Update 9-line summary cards
       if (sheetIdx === 0) {
-        document.getElementById('s1-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
-        document.getElementById('s1-total').innerText = `${formatNumber(totalManDay + 105 + 525 + 75 + 105)} Man-Day (เฉลี่ย ${((totalManDay + 810)/7).toFixed(1)} วัน/คน)`;
+        const s1m1 = document.getElementById('s1-m1');
+        if (s1m1) s1m1.innerText = formatNumber(totalManDay);
+        recalculateCardTotals(document.getElementById('summary-sheet1'));
       } else if (sheetIdx === 1) {
-        document.getElementById('s2-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
-        document.getElementById('s2-total').innerText = `${formatNumber(totalManDay + 60 + 300 + 40 + 60)} Man-Day (เฉลี่ย ${((totalManDay + 460)/4).toFixed(1)} วัน/คน)`;
+        const s2m1 = document.getElementById('s2-m1');
+        if (s2m1) s2m1.innerText = formatNumber(totalManDay);
+        recalculateCardTotals(document.getElementById('summary-sheet2'));
       }
     }
 
@@ -1254,8 +1548,9 @@
         }
       });
 
-      document.getElementById('s3-m1').innerText = `${formatNumber(totalManDay)} Man-Day`;
-      document.getElementById('s3-total').innerText = `${formatNumber(totalManDay)} Man-Day`;
+      const s3m1 = document.getElementById('s3-m1');
+      if (s3m1) s3m1.innerText = formatNumber(totalManDay);
+      recalculateCardTotals(document.getElementById('summary-sheet3'));
     }
 
     function renderBudgetSheet(sheetId, rows) {
@@ -1340,7 +1635,7 @@
         const cellF = String(row[5] || '').trim();
         const cellG = String(row[6] || extractAuditorVal(row)).trim();
 
-        if (cellA === 'ลำดับ' || cellB.includes('ชื่อโครงการ Multiyear')) {
+        if (cellA === 'ลำดับ' || cellB.includes('ชื่อโครงการ')) {
           return;
         }
 
@@ -1442,7 +1737,9 @@
 
     // Live Recalculation Listener
     document.addEventListener('input', function(e) {
-      if (e.target && e.target.tagName === 'TD' && e.target.closest('.audit-table')) {
+      if (e.target && e.target.closest('.summary-card')) {
+        recalculateCardTotals(e.target.closest('.summary-card'));
+      } else if (e.target && e.target.tagName === 'TD' && e.target.closest('.audit-table')) {
         recalculateTotalsFromTable();
       }
     });
@@ -1458,8 +1755,9 @@
         }
       });
       if (s1Total > 0) {
-        document.getElementById('s1-m1').innerText = `${formatNumber(s1Total)} Man-Day`;
-        document.getElementById('s1-total').innerText = `${formatNumber(s1Total + 105 + 525 + 75 + 105)} Man-Day (เฉลี่ย ${((s1Total + 810)/7).toFixed(1)} วัน/คน)`;
+        const s1m1 = document.getElementById('s1-m1');
+        if (s1m1) s1m1.innerText = formatNumber(s1Total);
+        recalculateCardTotals(document.getElementById('summary-sheet1'));
       }
 
       // Recalculate Sheet 2
@@ -1472,17 +1770,12 @@
         }
       });
       if (s2Total > 0) {
-        document.getElementById('s2-m1').innerText = `${formatNumber(s2Total)} Man-Day`;
-        document.getElementById('s2-total').innerText = `${formatNumber(s2Total + 60 + 300 + 40 + 60)} Man-Day (เฉลี่ย ${((s2Total + 460)/4).toFixed(1)} วัน/คน)`;
+        const s2m1 = document.getElementById('s2-m1');
+        if (s2m1) s2m1.innerText = formatNumber(s2Total);
+        recalculateCardTotals(document.getElementById('summary-sheet2'));
       }
     }
 
-    // Auto-fetch on Page Load
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchGoogleSheet();
-    });
-
-    // Export current live editable tables to an Excel (.xlsx) file
     function exportToExcel() {
       const wb = XLSX.utils.book_new();
       const sheetConfigs = [
@@ -1490,15 +1783,16 @@
         { id: 'table-sheet2', name: 'สาย 2' },
         { id: 'table-sheet3', name: 'ตรวจสอบพิเศษ' },
         { id: 'table-sheet4', name: 'งบเงินแผ่นดิน' },
-        { id: 'table-sheet5', name: 'Multiyear' },
-        { id: 'table-sheet6', name: 'สรุปภาพรวม' }
+        { id: 'table-sheet5', name: 'แม่โขงล้านช้าง' },
+        { id: 'table-sheet6', name: 'Multiyear' },
+        { id: 'table-sheet7', name: 'แผนงานเพิ่มเติม' },
+        { id: 'table-sheet8', name: 'สรุปภาพรวม' }
       ];
 
       let sheetsAdded = 0;
       sheetConfigs.forEach(cfg => {
         const tableEl = document.getElementById(cfg.id);
         if (tableEl && tableEl.querySelector('tbody tr')) {
-          // Clone table and remove no-print action column for clean excel export
           const cloneTable = tableEl.cloneNode(true);
           cloneTable.querySelectorAll('.no-print').forEach(el => el.remove());
           
@@ -1513,9 +1807,14 @@
         return;
       }
 
-      XLSX.writeFile(wb, "แผนการตรวจสอบประจำปี_2570.xlsx");
-      document.getElementById('importStatus').innerHTML = '✅ ส่งออกไฟล์ Excel (ข้อมูลล่าสุดที่แก้ไข) เรียบร้อยแล้ว!';
+      XLSX.writeFile(wb, "แผนการตรวจสอบประจำปี_2570_ครบ8ตาราง.xlsx");
+      document.getElementById('importStatus').innerHTML = '✅ ส่งออกไฟล์ Excel ครบทั้ง 8 ตารางเรียบร้อยแล้ว!';
     }
+
+    // Auto-fetch on Page Load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchGoogleSheet();
+    });
   </script>
 </body>
 </html>
